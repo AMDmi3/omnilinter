@@ -1,7 +1,7 @@
 use crate::ruleset::{Glob, Regex, Rule, Ruleset};
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 struct ParsedRule {
@@ -14,6 +14,7 @@ struct ParsedRule {
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 struct ParsedConfig {
     pub rules: Vec<ParsedRule>,
+    pub roots: Option<Vec<PathBuf>>,
 }
 
 impl ParsedConfig {
@@ -22,26 +23,47 @@ impl ParsedConfig {
     }
 }
 
-pub fn parse_config_from_str(s: &str) -> Ruleset {
-    let parsed = ParsedConfig::from_str(s).unwrap();
-
-    Ruleset {
-        rules: parsed
-            .rules
-            .into_iter()
-            .map(|parsed_rule| Rule {
-                title: parsed_rule.title,
-                glob: Glob::new(&parsed_rule.files).unwrap(),
-                regex: parsed_rule.pattern.map(|p| Regex::new(&p).unwrap()),
-            })
-            .collect(),
-    }
+pub struct Config {
+    pub ruleset: Ruleset,
+    pub roots: Vec<PathBuf>,
 }
 
-pub fn parse_config_from_file(path: &Path) -> Ruleset {
-    let text = fs::read_to_string(path).unwrap();
+impl Config {
+    pub fn new() -> Config {
+        Config {
+            ruleset: Ruleset {
+                rules: Default::default(),
+            },
+            roots: Default::default(),
+        }
+    }
 
-    parse_config_from_str(&text)
+    pub fn append_from_str(&mut self, s: &str) {
+        let parsed = ParsedConfig::from_str(s).unwrap();
+
+        // XXX: switchto collect_info when stabilized
+        self.ruleset.rules.extend(
+            parsed
+                .rules
+                .into_iter()
+                .map(|parsed_rule| Rule {
+                    title: parsed_rule.title,
+                    glob: Glob::new(&parsed_rule.files).unwrap(),
+                    regex: parsed_rule.pattern.map(|p| Regex::new(&p).unwrap()),
+                })
+                .collect::<Vec<_>>(),
+        );
+
+        if let Some(roots) = parsed.roots {
+            self.roots.extend(roots);
+        }
+    }
+
+    pub fn append_from_file(&mut self, path: &Path) {
+        let text = fs::read_to_string(path).unwrap();
+
+        self.append_from_str(&text)
+    }
 }
 
 #[cfg(test)]

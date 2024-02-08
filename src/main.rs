@@ -5,7 +5,7 @@ mod reporter;
 mod ruleset;
 
 use crate::applier::apply_ruleset_to_root;
-use crate::parser::parse_config_from_file;
+use crate::parser::Config;
 use crate::reporter::{Reporter, ReporterOptions};
 use clap::Parser;
 use std::path::PathBuf;
@@ -29,13 +29,21 @@ struct Args {
 fn main() {
     let args = Args::parse();
 
-    let config = parse_config_from_file(&args.config);
+    let mut config = Config::new();
+
+    config.append_from_file(&args.config);
 
     let mut reporter = Reporter::new(ReporterOptions {
         full_paths: args.full_paths,
     });
 
-    for root in args.roots {
-        apply_ruleset_to_root(&config, &root, &mut reporter);
+    let mut roots = if args.roots.is_empty() {
+        config.roots
+    } else {
+        args.roots
+    };
+
+    for root in roots {
+        apply_ruleset_to_root(&config.ruleset, &root, &mut reporter);
     }
 }
