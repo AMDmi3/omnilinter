@@ -27,8 +27,9 @@ pub fn parse_config_from_str(s: &str) -> Ruleset {
     Ruleset {
         rules: parsed
             .rules
-            .iter()
+            .into_iter()
             .map(|parsed_rule| Rule {
+                title: parsed_rule.title,
                 glob: Glob::new(&parsed_rule.files).unwrap(),
                 regex: Regex::new(&parsed_rule.pattern).unwrap(),
             })
