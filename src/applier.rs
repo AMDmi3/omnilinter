@@ -23,7 +23,7 @@ fn apply_rule_to_path(loc: &FileMatchLocation, rule: &Rule, reporter: &mut Repor
     }
 }
 
-fn apply_rule_to_target(loc: &RootMatchLocation, rule: &Rule, reporter: &mut Reporter) {
+fn apply_rule_to_root(loc: &RootMatchLocation, rule: &Rule, reporter: &mut Reporter) {
     let mut match_options = glob::MatchOptions::new();
     match_options.require_literal_separator = true;
 
@@ -40,9 +40,9 @@ fn apply_rule_to_target(loc: &RootMatchLocation, rule: &Rule, reporter: &mut Rep
     }
 }
 
-pub fn apply_ruleset_to_target(ruleset: &Ruleset, target: &Path, reporter: &mut Reporter) {
-    let loc = &RootMatchLocation { root: target };
+pub fn apply_ruleset_to_root(ruleset: &Ruleset, root: &Path, reporter: &mut Reporter) {
+    let loc = &RootMatchLocation { root };
     for rule in &ruleset.rules {
-        apply_rule_to_target(&loc, &rule, reporter);
+        apply_rule_to_root(&loc, &rule, reporter);
     }
 }

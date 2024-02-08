@@ -4,7 +4,7 @@ mod parser;
 mod reporter;
 mod ruleset;
 
-use crate::applier::apply_ruleset_to_target;
+use crate::applier::apply_ruleset_to_root;
 use crate::parser::parse_config_from_file;
 use crate::reporter::{Reporter, ReporterOptions};
 use clap::Parser;
@@ -23,7 +23,7 @@ struct Args {
 
     /// Paths to directories to operate on
     #[arg(value_name = "TARGET_DIR")]
-    targets: Vec<PathBuf>,
+    roots: Vec<PathBuf>,
 }
 
 fn main() {
@@ -35,7 +35,7 @@ fn main() {
         full_paths: args.full_paths,
     });
 
-    for target in args.targets {
-        apply_ruleset_to_target(&config, &target, &mut reporter);
+    for root in args.roots {
+        apply_ruleset_to_root(&config, &root, &mut reporter);
     }
 }
