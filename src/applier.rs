@@ -1,38 +1,44 @@
+use crate::location::*;
+use crate::reporter::Reporter;
 use crate::ruleset::{Rule, Ruleset};
 use glob;
 use std::fs;
 use std::path::Path;
 use walkdir::WalkDir;
 
-fn apply_rule_to_path(rule: &Rule, path: &Path) {
-    let text = fs::read_to_string(path).unwrap();
+fn apply_rule_to_path(loc: &FileMatchLocation, rule: &Rule, reporter: &mut Reporter) {
+    let text = fs::read_to_string(loc.file).unwrap();
 
     for (nline, line) in text.lines().enumerate() {
         if rule.regex.is_match(line) {
-            println!("{}:{}: {}", path.display(), nline + 1, rule.title);
+            reporter.report(
+                &MatchLocation::Line(LineMatchLocation::from_file(loc, nline + 1)),
+                &rule.title,
+            );
         }
     }
 }
 
-fn apply_rule_to_target(rule: &Rule, target: &Path) {
+fn apply_rule_to_target(loc: &RootMatchLocation, rule: &Rule, reporter: &mut Reporter) {
     let mut match_options = glob::MatchOptions::new();
     match_options.require_literal_separator = true;
 
-    for path in WalkDir::new(target)
+    for path in WalkDir::new(loc.root)
         .into_iter()
         .filter_map(|e| e.ok())
         .filter(|e| e.file_type().is_file())
         .map(|e| e.into_path())
     {
-        let path = path.strip_prefix(&target).unwrap();
+        let path = path.strip_prefix(&loc.root).unwrap();
         if rule.glob.matches_path_with(path, match_options) {
-            apply_rule_to_path(rule, path);
+            apply_rule_to_path(&FileMatchLocation::from_root(loc, path), rule, reporter);
         }
     }
 }
 
-pub fn apply_ruleset_to_target(ruleset: &Ruleset, target: &Path) {
+pub fn apply_ruleset_to_target(ruleset: &Ruleset, target: &Path, reporter: &mut Reporter) {
+    let loc = &RootMatchLocation { root: target };
     for rule in &ruleset.rules {
-        apply_rule_to_target(&rule, target);
+        apply_rule_to_target(&loc, &rule, reporter);
     }
 }
