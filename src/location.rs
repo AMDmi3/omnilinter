@@ -1,9 +1,11 @@
 use std::path::Path;
 
+#[derive(Copy, Clone)]
 pub struct RootMatchLocation<'a> {
     pub root: &'a Path,
 }
 
+#[derive(Copy, Clone)]
 pub struct FileMatchLocation<'a> {
     pub root: &'a Path,
     pub file: &'a Path,
@@ -18,6 +20,7 @@ impl<'a> FileMatchLocation<'a> {
     }
 }
 
+#[derive(Copy, Clone)]
 pub struct LineMatchLocation<'a> {
     pub root: &'a Path,
     pub file: &'a Path,

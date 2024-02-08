@@ -8,7 +8,7 @@ struct ParsedRule {
     pub title: String,
     pub files: String,
     #[serde(rename(serialize = "match", deserialize = "match"))]
-    pub pattern: String,
+    pub pattern: Option<String>,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
@@ -32,7 +32,7 @@ pub fn parse_config_from_str(s: &str) -> Ruleset {
             .map(|parsed_rule| Rule {
                 title: parsed_rule.title,
                 glob: Glob::new(&parsed_rule.files).unwrap(),
-                regex: Regex::new(&parsed_rule.pattern).unwrap(),
+                regex: parsed_rule.pattern.map(|p| Regex::new(&p).unwrap()),
             })
             .collect(),
     }

@@ -4,7 +4,7 @@ pub use regex::Regex;
 pub struct Rule {
     pub title: String,
     pub glob: Glob,
-    pub regex: Regex,
+    pub regex: Option<Regex>,
 }
 
 pub struct Ruleset {
