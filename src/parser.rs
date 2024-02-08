@@ -1,6 +1,7 @@
 use crate::ruleset::{Glob, Regex, Rule, Ruleset};
 use serde::{Deserialize, Serialize};
 use std::fs;
+use std::path::Path;
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 struct ParsedRule {
@@ -37,7 +38,7 @@ pub fn parse_config_from_str(s: &str) -> Ruleset {
     }
 }
 
-pub fn parse_config_from_file(path: &str) -> Ruleset {
+pub fn parse_config_from_file(path: &Path) -> Ruleset {
     let text = fs::read_to_string(path).unwrap();
 
     parse_config_from_str(&text)
