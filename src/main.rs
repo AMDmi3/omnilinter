@@ -1,6 +1,9 @@
+mod applier;
 mod parser;
 mod ruleset;
 
+use crate::applier::apply_ruleset_to_target;
+use crate::parser::parse_config_from_file;
 use clap::Parser;
 use std::path::PathBuf;
 
@@ -18,4 +21,10 @@ struct Args {
 
 fn main() {
     let args = Args::parse();
+
+    let config = parse_config_from_file(&args.config);
+
+    for target in args.targets {
+        apply_ruleset_to_target(&config, &target);
+    }
 }
