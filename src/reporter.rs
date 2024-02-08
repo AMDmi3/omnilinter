@@ -1,13 +1,19 @@
 use crate::location::MatchLocation;
 use std::path::PathBuf;
 
+pub struct ReporterOptions {
+    pub full_paths: bool,
+}
+
 pub struct Reporter {
+    options: ReporterOptions,
     prev_root: PathBuf,
 }
 
 impl Reporter {
-    pub fn new() -> Reporter {
+    pub fn new(options: ReporterOptions) -> Reporter {
         Reporter {
+            options,
             prev_root: Default::default(),
         }
     }
@@ -26,10 +32,24 @@ impl Reporter {
 
         match location {
             MatchLocation::Root(loc) => println!("- {}", message),
-            MatchLocation::File(loc) => println!("- {}: {}", loc.file.display(), message),
-
+            MatchLocation::File(loc) => {
+                if self.options.full_paths {
+                    println!("- {}: {}", loc.root.join(loc.file).display(), message)
+                } else {
+                    println!("- {}: {}", loc.file.display(), message)
+                }
+            }
             MatchLocation::Line(loc) => {
-                println!("- {}:{}: {}", loc.file.display(), loc.line, message)
+                if self.options.full_paths {
+                    println!(
+                        "- {}:{}: {}",
+                        loc.root.join(loc.file).display(),
+                        loc.line,
+                        message
+                    )
+                } else {
+                    println!("- {}:{}: {}", loc.file.display(), loc.line, message)
+                }
             }
         }
     }
