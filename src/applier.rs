@@ -8,7 +8,7 @@ use walkdir::WalkDir;
 
 fn apply_rule_to_path(loc: &FileMatchLocation, rule: &Rule, reporter: &mut Reporter) {
     if let Some(regex) = &rule.regex {
-        let text = fs::read_to_string(loc.file).unwrap();
+        let text = fs::read_to_string(loc.root.join(loc.file)).unwrap();
 
         for (nline, line) in text.lines().enumerate() {
             if regex.is_match(line) {
