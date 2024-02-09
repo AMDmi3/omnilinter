@@ -38,6 +38,7 @@ impl<'a> LineMatchLocation<'a> {
 }
 
 pub enum MatchLocation<'a> {
+    #[allow(dead_code)]
     Root(RootMatchLocation<'a>),
     File(FileMatchLocation<'a>),
     Line(LineMatchLocation<'a>),

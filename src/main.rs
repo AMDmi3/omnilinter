@@ -60,7 +60,7 @@ fn main() {
         full_paths: args.report_full_paths,
     });
 
-    let mut roots = if args.roots.is_empty() {
+    let roots = if args.roots.is_empty() {
         config.roots
     } else {
         args.roots

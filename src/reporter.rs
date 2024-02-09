@@ -31,7 +31,7 @@ impl Reporter {
         }
 
         match location {
-            MatchLocation::Root(loc) => println!("- {}", message),
+            MatchLocation::Root(_) => println!("- {}", message),
             MatchLocation::File(loc) => {
                 if self.options.full_paths {
                     println!("- {}: {}", loc.root.join(loc.file).display(), message)

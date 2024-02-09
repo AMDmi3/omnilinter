@@ -38,12 +38,14 @@ impl Config {
         }
     }
 
+    #[allow(dead_code)]
     pub fn from_str(s: &str) -> Config {
         let mut config = Config::new();
         config.append_from_str(s);
         config
     }
 
+    #[allow(dead_code)]
     pub fn from_file(path: &Path) -> Config {
         let mut config = Config::new();
         config.append_from_file(path);
