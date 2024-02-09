@@ -34,8 +34,19 @@ fn apply_rule_to_root(loc: &RootMatchLocation, rule: &Rule, reporter: &mut dyn R
         .map(|e| e.into_path())
     {
         let path = path.strip_prefix(&loc.root).unwrap();
-        if rule.glob.matches_path_with(path, match_options) {
-            apply_rule_to_path(&FileMatchLocation::from_root(loc, path), rule, reporter);
+
+        if let Some(antiglob) = &rule.antiglob {
+            if antiglob.matches_path_with(path, match_options) {
+                continue;
+            }
+        }
+
+        if let Some(glob) = &rule.glob {
+            if glob.matches_path_with(path, match_options) {
+                apply_rule_to_path(&FileMatchLocation::from_root(loc, path), rule, reporter);
+            }
+        } else {
+            reporter.report(&MatchLocation::Root(*loc), &rule.title);
         }
     }
 }

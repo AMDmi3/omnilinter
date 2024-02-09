@@ -132,7 +132,6 @@ fn multiple_globs() {
 }
 
 #[test]
-#[ignore]
 fn nofiles() {
     TestCase::new()
         .add_file("a.py", "")

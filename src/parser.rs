@@ -6,7 +6,8 @@ use std::path::{Path, PathBuf};
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 struct ParsedRule {
     pub title: String,
-    pub files: String,
+    pub files: Option<String>,
+    pub nofiles: Option<String>,
     #[serde(rename(serialize = "match", deserialize = "match"))]
     pub pattern: Option<String>,
 }
@@ -62,7 +63,8 @@ impl Config {
                     .into_iter()
                     .map(|parsed_rule| Rule {
                         title: parsed_rule.title,
-                        glob: Glob::new(&parsed_rule.files).unwrap(),
+                        glob: parsed_rule.files.map(|g| Glob::new(&g).unwrap()),
+                        antiglob: parsed_rule.nofiles.map(|g| Glob::new(&g).unwrap()),
                         regex: parsed_rule.pattern.map(|p| Regex::new(&p).unwrap()),
                     })
                     .collect::<Vec<_>>(),
