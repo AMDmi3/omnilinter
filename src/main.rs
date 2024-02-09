@@ -21,8 +21,8 @@ struct Args {
     config_paths: Vec<PathBuf>,
 
     /// Report full paths of matched files
-    #[arg(short = 'f', long)]
-    full_paths: bool,
+    #[arg(short = 'f', long = "full_paths")]
+    report_full_paths: bool,
 
     /// Paths to directories to operate on
     #[arg(value_name = "TARGET_DIR")]
@@ -57,7 +57,7 @@ fn main() {
     }
 
     let mut reporter = Reporter::new(ReporterOptions {
-        full_paths: args.full_paths,
+        full_paths: args.report_full_paths,
     });
 
     let mut roots = if args.roots.is_empty() {
