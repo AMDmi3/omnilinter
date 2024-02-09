@@ -6,7 +6,7 @@ use std::fs;
 use std::path::Path;
 use walkdir::WalkDir;
 
-fn apply_rule_to_path(loc: &FileMatchLocation, rule: &Rule, reporter: &mut Reporter) {
+fn apply_rule_to_path(loc: &FileMatchLocation, rule: &Rule, reporter: &mut dyn Reporter) {
     if let Some(regex) = &rule.regex {
         let text = fs::read_to_string(loc.root.join(loc.file)).unwrap();
 
@@ -23,7 +23,7 @@ fn apply_rule_to_path(loc: &FileMatchLocation, rule: &Rule, reporter: &mut Repor
     }
 }
 
-fn apply_rule_to_root(loc: &RootMatchLocation, rule: &Rule, reporter: &mut Reporter) {
+fn apply_rule_to_root(loc: &RootMatchLocation, rule: &Rule, reporter: &mut dyn Reporter) {
     let mut match_options = glob::MatchOptions::new();
     match_options.require_literal_separator = true;
 
@@ -40,7 +40,7 @@ fn apply_rule_to_root(loc: &RootMatchLocation, rule: &Rule, reporter: &mut Repor
     }
 }
 
-pub fn apply_ruleset_to_root(ruleset: &Ruleset, root: &Path, reporter: &mut Reporter) {
+pub fn apply_ruleset_to_root(ruleset: &Ruleset, root: &Path, reporter: &mut dyn Reporter) {
     let loc = &RootMatchLocation { root };
     for rule in &ruleset.rules {
         apply_rule_to_root(&loc, &rule, reporter);

@@ -1,24 +1,27 @@
 use crate::location::MatchLocation;
+use crate::reporter::Reporter;
 use std::path::PathBuf;
 
 pub struct ReporterOptions {
     pub full_paths: bool,
 }
 
-pub struct Reporter {
+pub struct StdoutReporter {
     options: ReporterOptions,
     prev_root: PathBuf,
 }
 
-impl Reporter {
-    pub fn new(options: ReporterOptions) -> Reporter {
-        Reporter {
+impl StdoutReporter {
+    pub fn new(options: ReporterOptions) -> Self {
+        Self {
             options,
             prev_root: Default::default(),
         }
     }
+}
 
-    pub fn report(&mut self, location: &MatchLocation, message: &str) {
+impl Reporter for StdoutReporter {
+    fn report(&mut self, location: &MatchLocation, message: &str) {
         let current_root = match location {
             MatchLocation::Root(loc) => loc.root,
             MatchLocation::File(loc) => loc.root,

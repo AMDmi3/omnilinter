@@ -6,7 +6,9 @@ mod ruleset;
 
 use crate::applier::apply_ruleset_to_root;
 use crate::parser::Config;
-use crate::reporter::{Reporter, ReporterOptions};
+use crate::reporter::json::JsonReporter;
+use crate::reporter::stdout::{ReporterOptions, StdoutReporter};
+use crate::reporter::Reporter;
 use clap::Parser;
 use std::path::PathBuf;
 use xdg;
@@ -23,6 +25,10 @@ struct Args {
     /// Report full paths of matched files
     #[arg(short = 'f', long = "full_paths")]
     report_full_paths: bool,
+
+    /// Output matches in JSON format
+    #[arg(long = "json")]
+    json_output: bool,
 
     /// Paths to directories to operate on
     #[arg(value_name = "TARGET_DIR")]
@@ -56,9 +62,13 @@ fn main() {
         eprintln!("Warning: ruleset is empty");
     }
 
-    let mut reporter = Reporter::new(ReporterOptions {
-        full_paths: args.report_full_paths,
-    });
+    let mut reporter: Box<dyn Reporter> = if args.json_output {
+        Box::new(JsonReporter::new())
+    } else {
+        Box::new(StdoutReporter::new(ReporterOptions {
+            full_paths: args.report_full_paths,
+        }))
+    };
 
     let roots = if args.roots.is_empty() {
         config.roots
@@ -67,6 +77,8 @@ fn main() {
     };
 
     for root in roots {
-        apply_ruleset_to_root(&config.ruleset, &root, &mut reporter);
+        apply_ruleset_to_root(&config.ruleset, &root, reporter.as_mut());
     }
+
+    reporter.flush();
 }
