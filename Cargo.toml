@@ -12,3 +12,4 @@ regex = { version = "1.10.3", default-features = false, features = ["std"] }
 serde = { version = "1.0.196", features = ["derive"] }
 serde_yaml = "0.9.31"
 walkdir = "2.4.0"
+xdg = "2.5.2"

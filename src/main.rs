@@ -9,13 +9,16 @@ use crate::parser::Config;
 use crate::reporter::{Reporter, ReporterOptions};
 use clap::Parser;
 use std::path::PathBuf;
+use xdg;
+
+const CONFIG_FILE_NAME: &str = "omnilinter.conf";
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
-    /// Path to configuration file
-    #[arg(short = 'c', long, value_name = "CONFIG_PATH")]
-    config: PathBuf,
+    /// Path(s) to configuration file(s)
+    #[arg(short = 'c', long = "config", value_name = "CONFIG_PATH")]
+    config_paths: Vec<PathBuf>,
 
     /// Report full paths of matched files
     #[arg(short = 'f', long)]
@@ -31,7 +34,27 @@ fn main() {
 
     let mut config = Config::new();
 
-    config.append_from_file(&args.config);
+    let default_config_path = match xdg::BaseDirectories::with_prefix("omnilinter") {
+        Ok(xdg_dirs) => xdg_dirs.find_config_file(CONFIG_FILE_NAME),
+        Err(err) => {
+            eprintln!("Warning: cannot set up XDG directories: {}", err);
+            None
+        }
+    };
+
+    if !args.config_paths.is_empty() {
+        args.config_paths
+            .iter()
+            .for_each(|path| config.append_from_file(&path));
+    } else if let Some(path) = default_config_path {
+        config.append_from_file(&path);
+    } else {
+        eprintln!("Error: config file is neither specified on the command line, nor present in the application config directory");
+    }
+
+    if config.ruleset.rules.is_empty() {
+        eprintln!("Warning: ruleset is empty");
+    }
 
     let mut reporter = Reporter::new(ReporterOptions {
         full_paths: args.full_paths,
