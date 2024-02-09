@@ -13,7 +13,7 @@ struct ParsedRule {
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 struct ParsedConfig {
-    pub rules: Vec<ParsedRule>,
+    pub rules: Option<Vec<ParsedRule>>,
     pub roots: Option<Vec<PathBuf>>,
 }
 
@@ -41,18 +41,19 @@ impl Config {
     pub fn append_from_str(&mut self, s: &str) {
         let parsed = ParsedConfig::from_str(s).unwrap();
 
-        // XXX: switchto collect_info when stabilized
-        self.ruleset.rules.extend(
-            parsed
-                .rules
-                .into_iter()
-                .map(|parsed_rule| Rule {
-                    title: parsed_rule.title,
-                    glob: Glob::new(&parsed_rule.files).unwrap(),
-                    regex: parsed_rule.pattern.map(|p| Regex::new(&p).unwrap()),
-                })
-                .collect::<Vec<_>>(),
-        );
+        // XXX: switch to collect_into when that's stabilized
+        if let Some(rules) = parsed.rules {
+            self.ruleset.rules.extend(
+                rules
+                    .into_iter()
+                    .map(|parsed_rule| Rule {
+                        title: parsed_rule.title,
+                        glob: Glob::new(&parsed_rule.files).unwrap(),
+                        regex: parsed_rule.pattern.map(|p| Regex::new(&p).unwrap()),
+                    })
+                    .collect::<Vec<_>>(),
+            );
+        }
 
         if let Some(roots) = parsed.roots {
             self.roots.extend(roots);
