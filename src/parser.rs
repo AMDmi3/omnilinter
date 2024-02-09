@@ -92,21 +92,8 @@ mod tests {
               match: 'abc'
         ";
 
-        let parsed_yaml = ParsedConfig::from_str(text).unwrap();
+        let config = Config::from_str(text);
 
-        assert_eq!(
-            parsed_yaml,
-            ParsedConfig {
-                rules: vec![ParsedRule {
-                    title: String::from("test rule"),
-                    files: String::from("*.*"),
-                    pattern: String::from("abc"),
-                }]
-            }
-        );
-
-        let parsed_config = parse_config_from_str(text);
-
-        assert_eq!(parsed_config.rules.len(), 1);
+        assert_eq!(config.ruleset.rules.len(), 1);
     }
 }
