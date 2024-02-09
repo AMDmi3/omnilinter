@@ -38,6 +38,18 @@ impl Config {
         }
     }
 
+    pub fn from_str(s: &str) -> Config {
+        let mut config = Config::new();
+        config.append_from_str(s);
+        config
+    }
+
+    pub fn from_file(path: &Path) -> Config {
+        let mut config = Config::new();
+        config.append_from_file(path);
+        config
+    }
+
     pub fn append_from_str(&mut self, s: &str) {
         let parsed = ParsedConfig::from_str(s).unwrap();
 
