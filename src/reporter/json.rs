@@ -5,7 +5,9 @@ use crate::reporter::Reporter;
 struct Match {
     message: String,
     root: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     file: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     line: Option<usize>,
 }
 
