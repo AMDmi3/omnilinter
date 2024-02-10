@@ -23,7 +23,7 @@ struct Args {
     config_paths: Vec<PathBuf>,
 
     /// Report full paths of matched files
-    #[arg(short = 'f', long = "full_paths")]
+    #[arg(short = 'f', long = "full-paths")]
     report_full_paths: bool,
 
     /// Output matches in JSON format
