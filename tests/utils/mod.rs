@@ -80,10 +80,11 @@ impl TestCase {
         let mut res: Vec<String> = self
             .last_matches
             .iter()
-            .filter_map(|m| m.file.as_ref().map(|file| (file, &m.line)))
-            .map(|(file, line)| match line {
-                Some(line) => format!("{file}:{line}"),
-                None => file.to_string(),
+            .map(|m| match (&m.file, &m.line) {
+                (Some(file), Some(line)) => format!("{file}:{line}"),
+                (Some(file), None) => file.to_string(),
+                (None, None) => Default::default(),
+                _ => panic!("line number without file cannot happen"),
             })
             .collect();
         res.sort();
