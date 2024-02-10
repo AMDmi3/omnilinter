@@ -65,7 +65,6 @@ fn match_file_only() {
 }
 
 #[test]
-#[ignore]
 fn glob_scope() {
     TestCase::new()
         .add_file("a.py", "")
