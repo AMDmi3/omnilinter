@@ -20,6 +20,8 @@ jobs:
         run: cargo test
       - name: Format check
         run: cargo fmt --check
+      - name: Run omnilinter on its own repository
+        run: cargo run -- --config .omnilinter.conf .
 
   coverage:
     runs-on: ubuntu-latest
