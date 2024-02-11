@@ -50,4 +50,8 @@ impl Reporter for JsonReporter {
     fn flush(&self) {
         println!("{}", serde_json::to_string_pretty(&self.reports).unwrap());
     }
+
+    fn has_matches(&self) -> bool {
+        !self.reports.is_empty()
+    }
 }

@@ -30,6 +30,10 @@ struct Args {
     #[arg(long = "json")]
     json_output: bool,
 
+    /// If any matches are found, exit with given code
+    #[arg(long, value_name = "EXITCODE")]
+    error_exitcode: Option<i32>,
+
     /// Paths to directories to operate on
     #[arg(value_name = "TARGET_DIR")]
     roots: Vec<PathBuf>,
@@ -81,4 +85,10 @@ fn main() {
     }
 
     reporter.flush();
+
+    if let Some(error_exitcode) = args.error_exitcode {
+        if reporter.has_matches() {
+            std::process::exit(error_exitcode);
+        }
+    }
 }

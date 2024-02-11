@@ -9,6 +9,7 @@ pub struct ReporterOptions {
 pub struct StdoutReporter {
     options: ReporterOptions,
     prev_root: PathBuf,
+    has_matches: bool,
 }
 
 impl StdoutReporter {
@@ -16,6 +17,7 @@ impl StdoutReporter {
         Self {
             options,
             prev_root: Default::default(),
+            has_matches: false,
         }
     }
 }
@@ -55,5 +57,13 @@ impl Reporter for StdoutReporter {
                 }
             }
         }
+
+        self.has_matches = true;
+    }
+
+    fn flush(&self) {}
+
+    fn has_matches(&self) -> bool {
+        self.has_matches
     }
 }
