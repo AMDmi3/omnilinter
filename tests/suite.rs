@@ -189,3 +189,18 @@ fn empty_globs_seq() {
             ",
     );
 }
+
+#[test]
+fn nomatch() {
+    TestCase::new()
+        .add_file("a.py", "a\nb\n\nc\n")
+        .add_file("b.py", "# SPDX-License-Identifier: GPLv3\na\nb\n\nc\n")
+        .run_with_rule(
+            "
+            - title: nomatch
+              files: '*.py'
+              nomatch: '# SPDX-License-Identifier: GPLv3'
+            ",
+        )
+        .assert_matches(vec!["a.py"]);
+}

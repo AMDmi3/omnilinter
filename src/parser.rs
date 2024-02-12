@@ -66,6 +66,7 @@ struct ParsedRule {
     pub nofiles: Option<Vec<String>>,
     #[serde(rename(serialize = "match", deserialize = "match"))]
     pub pattern: Option<String>,
+    pub nomatch: Option<String>,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
@@ -132,6 +133,7 @@ impl Config {
                                 .collect()
                         }),
                         regex: parsed_rule.pattern.map(|p| Regex::new(&p).unwrap()),
+                        antiregex: parsed_rule.nomatch.map(|p| Regex::new(&p).unwrap()),
                     })
                     .collect::<Vec<_>>(),
             );

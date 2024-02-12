@@ -42,6 +42,7 @@ pub struct Rule {
     pub globs: Option<Vec<Glob>>,
     pub antiglobs: Option<Vec<Glob>>,
     pub regex: Option<Regex>,
+    pub antiregex: Option<Regex>,
 }
 
 pub struct Ruleset {

@@ -7,9 +7,17 @@ use std::path::Path;
 use walkdir::WalkDir;
 
 fn apply_rule_to_path(loc: &FileMatchLocation, rule: &Rule, reporter: &mut dyn Reporter) {
-    if let Some(regex) = &rule.regex {
-        let text = fs::read_to_string(loc.root.join(loc.file)).unwrap();
+    let text = fs::read_to_string(loc.root.join(loc.file)).unwrap();
 
+    if let Some(antiregex) = &rule.antiregex {
+        for line in text.lines() {
+            if antiregex.is_match(line) {
+                return;
+            }
+        }
+    }
+
+    if let Some(regex) = &rule.regex {
         for (nline, line) in text.lines().enumerate() {
             if regex.is_match(line) {
                 reporter.report(
