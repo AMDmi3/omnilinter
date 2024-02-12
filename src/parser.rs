@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright 2024 Dmitry Marakasov <amdmi3@amdmi3.ru>
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 use crate::ruleset::{Glob, Regex, Rule, Ruleset};
 use serde::de::Error;
 use serde::{Deserialize, Deserializer, Serialize};
