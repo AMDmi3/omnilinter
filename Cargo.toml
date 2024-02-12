@@ -6,6 +6,8 @@ license = "GPL-3.0-or-later"
 readme = "README.md"
 homepage = "https://github.com/AMDmi3/omnilinter"
 repository = "https://github.com/AMDmi3/omnilinter"
+keywords = ["linter"]
+categories = ["command-line-utilities", "development-tools"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
