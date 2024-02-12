@@ -16,3 +16,6 @@ serde_yaml = "0.9.31"
 tempdir = "0.3.7"
 walkdir = "2.4.0"
 xdg = "2.5.2"
+
+[dev-dependencies]
+rstest = { version = "0.18.2", default-features = false }
