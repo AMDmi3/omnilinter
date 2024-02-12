@@ -245,3 +245,17 @@ fn tags() {
         )
         .assert_matches(vec![]);
 }
+
+#[test]
+fn ignore_marker() {
+    TestCase::new()
+        .add_file("a.py", "foo\nbar  # omnilinter: ignore")
+        .run_with_rule(
+            "
+            - title: test
+              files: '*.py'
+              match: 'foo|bar'
+            ",
+        )
+        .assert_matches(vec!["a.py:1"]);
+}

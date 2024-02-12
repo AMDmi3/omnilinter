@@ -7,6 +7,8 @@ use std::fs;
 use std::path::Path;
 use walkdir::WalkDir;
 
+const IGNORE_MARKER: &str = "omnilinter: ignore";
+
 pub struct ApplierOptions {
     pub required_tags: HashSet<String>,
     pub ignored_tags: HashSet<String>,
@@ -45,7 +47,7 @@ fn apply_rule_to_path(loc: &FileMatchLocation, rule: &Rule, reporter: &mut dyn R
 
     if let Some(regex) = &rule.regex {
         for (nline, line) in text.lines().enumerate() {
-            if regex.is_match(line) {
+            if regex.is_match(line) && !line.contains(IGNORE_MARKER) {
                 reporter.report(
                     &MatchLocation::Line(LineMatchLocation::from_file(loc, nline + 1)),
                     &rule.title,
