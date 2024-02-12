@@ -2,11 +2,15 @@ use crate::location::*;
 use crate::reporter::Reporter;
 use crate::ruleset::{Rule, Ruleset};
 use glob;
+use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
 use walkdir::WalkDir;
 
-pub struct ApplierOptions {}
+pub struct ApplierOptions {
+    pub required_tags: HashSet<String>,
+    pub ignored_tags: HashSet<String>,
+}
 
 pub struct Applier<'a> {
     ruleset: &'a Ruleset,
@@ -99,7 +103,14 @@ fn apply_rule_to_root(loc: &RootMatchLocation, rule: &Rule, reporter: &mut dyn R
 impl Applier<'_> {
     pub fn apply_to_root(&mut self, root: &Path) {
         let loc = &RootMatchLocation { root };
+
         for rule in &self.ruleset.rules {
+            if !self.options.required_tags.is_empty()
+                && self.options.required_tags.is_disjoint(&rule.tags)
+                || !self.options.ignored_tags.is_disjoint(&rule.tags)
+            {
+                return;
+            }
             apply_rule_to_root(&loc, &rule, self.reporter);
         }
     }

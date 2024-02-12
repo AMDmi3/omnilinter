@@ -1,4 +1,5 @@
 pub use regex::Regex;
+use std::collections::HashSet;
 use std::path::Path;
 
 enum GlobScope {
@@ -39,6 +40,7 @@ impl Glob {
 
 pub struct Rule {
     pub title: String,
+    pub tags: HashSet<String>,
     pub globs: Option<Vec<Glob>>,
     pub antiglobs: Option<Vec<Glob>>,
     pub regex: Option<Regex>,

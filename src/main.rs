@@ -22,6 +22,14 @@ struct Args {
     #[arg(short = 'c', long = "config", value_name = "CONFIG_PATH")]
     config_paths: Vec<PathBuf>,
 
+    /// Only process rules tagged with these values
+    #[arg(short = 't', long = "tags", value_name = "TAGS")]
+    required_tags: Vec<String>,
+
+    /// Ignore rules tagged with these values
+    #[arg(long = "skip-tags", value_name = "TAGS")]
+    ignored_tags: Vec<String>,
+
     /// Report full paths of matched files
     #[arg(short = 'f', long = "full-paths")]
     report_full_paths: bool,
@@ -80,7 +88,14 @@ fn main() {
         args.roots
     };
 
-    let mut applier = Applier::new(&config.ruleset, reporter.as_mut(), ApplierOptions {});
+    let mut applier = Applier::new(
+        &config.ruleset,
+        reporter.as_mut(),
+        ApplierOptions {
+            required_tags: args.required_tags.into_iter().collect(),
+            ignored_tags: args.ignored_tags.into_iter().collect(),
+        },
+    );
 
     for root in roots {
         applier.apply_to_root(&root);

@@ -57,9 +57,18 @@ where
     Ok(Some(deserializer.deserialize_any(StringSequenceVisitor)?))
 }
 
+fn deserialize_string_sequence<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    Ok(deserializer.deserialize_any(StringSequenceVisitor)?)
+}
+
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 struct ParsedRule {
     pub title: String,
+    #[serde(default, deserialize_with = "deserialize_string_sequence")]
+    pub tags: Vec<String>,
     #[serde(default, deserialize_with = "deserialize_optional_string_sequence")]
     pub files: Option<Vec<String>>,
     #[serde(default, deserialize_with = "deserialize_optional_string_sequence")]
@@ -120,6 +129,7 @@ impl Config {
                     .into_iter()
                     .map(|parsed_rule| Rule {
                         title: parsed_rule.title,
+                        tags: parsed_rule.tags.into_iter().collect(),
                         globs: parsed_rule.files.map(|patterns| {
                             patterns
                                 .iter()

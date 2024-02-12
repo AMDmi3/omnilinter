@@ -204,3 +204,44 @@ fn nomatch() {
         )
         .assert_matches(vec!["a.py"]);
 }
+
+#[test]
+fn tags() {
+    TestCase::new()
+        .add_file("a.py", "")
+        .add_arg("--tags=MYTAG")
+        .run_with_rule(
+            "
+            - title: tags test
+              files: '*.py'
+            ",
+        )
+        .assert_matches(vec![])
+        .run_with_rule(
+            "
+            - title: tags test
+              tags: 'MYTAG'
+              files: '*.py'
+            ",
+        )
+        .assert_matches(vec!["a.py"]);
+
+    TestCase::new()
+        .add_file("a.py", "")
+        .add_arg("--skip-tags=MYTAG")
+        .run_with_rule(
+            "
+            - title: tags test
+              files: '*.py'
+            ",
+        )
+        .assert_matches(vec!["a.py"])
+        .run_with_rule(
+            "
+            - title: tags test
+              tags: 'MYTAG'
+              files: '*.py'
+            ",
+        )
+        .assert_matches(vec![]);
+}
