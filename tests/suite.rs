@@ -150,13 +150,15 @@ fn multiple_globs() {
 fn nofiles() {
     TestCase::new()
         .add_file("a.py", "")
+        .add_file("b.py", "")
+        .add_file("c.py", "")
         .run_with_rule(
             "
             - title: nofiles which matches
               nofiles: '*.txt'
             ",
         )
-        .assert_matches(vec![""])
+        .assert_matches(vec![""]) // note also that this must match once, not per every file
         .run_with_rule(
             "
             - title: nofiles which doesn't match

@@ -27,33 +27,42 @@ fn apply_rule_to_root(loc: &RootMatchLocation, rule: &Rule, reporter: &mut dyn R
     let mut match_options = glob::MatchOptions::new();
     match_options.require_literal_separator = true;
 
-    for path in WalkDir::new(loc.root)
-        .into_iter()
-        .filter_map(|e| e.ok())
-        .filter(|e| e.file_type().is_file())
-        .map(|e| e.into_path())
-    {
-        let path = path.strip_prefix(&loc.root).unwrap();
+    if let Some(antiglobs) = &rule.antiglobs {
+        for path in WalkDir::new(loc.root)
+            .into_iter()
+            .filter_map(|e| e.ok())
+            .filter(|e| e.file_type().is_file())
+            .map(|e| e.into_path())
+        {
+            let path = path.strip_prefix(&loc.root).unwrap();
 
-        if let Some(antiglobs) = &rule.antiglobs {
             if antiglobs
                 .iter()
                 .any(|glob| glob.matches_path_with(path, match_options))
             {
-                continue;
+                return;
             }
         }
+    }
 
-        if let Some(globs) = &rule.globs {
+    if let Some(globs) = &rule.globs {
+        for path in WalkDir::new(loc.root)
+            .into_iter()
+            .filter_map(|e| e.ok())
+            .filter(|e| e.file_type().is_file())
+            .map(|e| e.into_path())
+        {
+            let path = path.strip_prefix(&loc.root).unwrap();
+
             if globs
                 .iter()
                 .any(|glob| glob.matches_path_with(path, match_options))
             {
                 apply_rule_to_path(&FileMatchLocation::from_root(loc, path), rule, reporter);
             }
-        } else {
-            reporter.report(&MatchLocation::Root(*loc), &rule.title);
         }
+    } else {
+        reporter.report(&MatchLocation::Root(*loc), &rule.title);
     }
 }
 
