@@ -4,10 +4,15 @@ use serde::{Deserialize, Deserializer, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-struct OptionalStringSequenceVisitor;
+/// serde visitor for flexible string sequences
+///
+/// Visitor for deserialization of string sequences, represented either
+/// as a single string with whitespace separators (`'foo bar baz'`), or
+/// a sequence of strings (`['foo', 'bar', 'baz']`).
+struct StringSequenceVisitor;
 
-impl<'de> serde::de::Visitor<'de> for OptionalStringSequenceVisitor {
-    type Value = Option<Vec<String>>;
+impl<'de> serde::de::Visitor<'de> for StringSequenceVisitor {
+    type Value = Vec<String>;
 
     fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
         formatter.write_str("string with whitespace separated values or sequence of strings")
@@ -21,7 +26,7 @@ impl<'de> serde::de::Visitor<'de> for OptionalStringSequenceVisitor {
         if res.is_empty() {
             Err(E::custom("empty string not allowed"))
         } else {
-            Ok(Some(res))
+            Ok(res)
         }
     }
 
@@ -38,7 +43,7 @@ impl<'de> serde::de::Visitor<'de> for OptionalStringSequenceVisitor {
         if res.is_empty() {
             Err(A::Error::custom("empty sequence not allowed"))
         } else {
-            Ok(Some(res))
+            Ok(res)
         }
     }
 }
@@ -49,7 +54,7 @@ fn deserialize_optional_string_sequence<'de, D>(
 where
     D: Deserializer<'de>,
 {
-    deserializer.deserialize_any(OptionalStringSequenceVisitor)
+    Ok(Some(deserializer.deserialize_any(StringSequenceVisitor)?))
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
