@@ -22,6 +22,8 @@ jobs:
         run: cargo fmt --check
       - name: Run omnilinter on its own repository
         run: cargo run -- --config .omnilinter.conf .
+      - name: Run omnilinter on its own repository
+        run: cargo run -- --error-exitcode 1 --tags fatal --config .omnilinter.conf .
 
   coverage:
     runs-on: ubuntu-latest
