@@ -66,7 +66,7 @@ where
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 struct ParsedRule {
-    pub title: String,
+    pub title: Option<String>,
     #[serde(default, deserialize_with = "deserialize_string_sequence")]
     pub tags: Vec<String>,
     #[serde(default, deserialize_with = "deserialize_optional_string_sequence")]
@@ -119,7 +119,7 @@ impl Config {
         config
     }
 
-    pub fn append_from_str(&mut self, s: &str) {
+    pub fn append_from_str_with_description(&mut self, s: &str, source_description: &str) {
         let parsed = ParsedConfig::from_str(s).unwrap();
 
         // XXX: switch to collect_into when that's stabilized
@@ -127,8 +127,11 @@ impl Config {
             self.ruleset.rules.extend(
                 rules
                     .into_iter()
-                    .map(|parsed_rule| Rule {
-                        title: parsed_rule.title,
+                    .enumerate()
+                    .map(|(rule_num, parsed_rule)| Rule {
+                        title: parsed_rule.title.unwrap_or_else(|| {
+                            format!("rule #{} from {}", rule_num + 1, source_description)
+                        }),
                         tags: parsed_rule.tags.into_iter().collect(),
                         globs: parsed_rule.files.map(|patterns| {
                             patterns
@@ -161,10 +164,14 @@ impl Config {
         }
     }
 
+    pub fn append_from_str(&mut self, s: &str) {
+        self.append_from_str_with_description(s, "???")
+    }
+
     pub fn append_from_file(&mut self, path: &Path) {
         let text = fs::read_to_string(path).unwrap();
 
-        self.append_from_str(&text)
+        self.append_from_str_with_description(&text, &path.display().to_string())
     }
 }
 
