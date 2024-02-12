@@ -217,39 +217,23 @@ mod tags {
     use super::*;
 
     #[test]
-    fn required_not_matching() {
+    fn required() {
         TestCase::new()
             .add_file("a.py", "")
+            .add_file("b.py", "")
             .add_arg("--tags=MYTAG")
-            .run_with_rule("- files: '*.py'")
-            .assert_matches(vec![]);
+            .run_with_rule("- files: 'a.py'\n- tags: MYTAG\n  files: 'b.py'")
+            .assert_matches(vec!["b.py"]);
     }
 
     #[test]
-    fn required_matching() {
+    fn skipped() {
         TestCase::new()
             .add_file("a.py", "")
-            .add_arg("--tags=MYTAG")
-            .run_with_rule("- tags: 'MYTAG'\n  files: '*.py'")
-            .assert_matches(vec!["a.py"]);
-    }
-
-    #[test]
-    fn skipped_not_matching() {
-        TestCase::new()
-            .add_file("a.py", "")
+            .add_file("b.py", "")
             .add_arg("--skip-tags=MYTAG")
-            .run_with_rule("- files: '*.py'")
+            .run_with_rule("- files: 'a.py'\n- tags: MYTAG\n  files: 'b.py'")
             .assert_matches(vec!["a.py"]);
-    }
-
-    #[test]
-    fn skipped_matching() {
-        TestCase::new()
-            .add_file("a.py", "")
-            .add_arg("--skip-tags=MYTAG")
-            .run_with_rule("- tags: 'MYTAG'\n  files: '*.py'")
-            .assert_matches(vec![]);
     }
 }
 

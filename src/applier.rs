@@ -111,7 +111,7 @@ impl Applier<'_> {
                 && self.options.required_tags.is_disjoint(&rule.tags)
                 || !self.options.ignored_tags.is_disjoint(&rule.tags)
             {
-                return;
+                continue;
             }
             apply_rule_to_root(&loc, &rule, self.reporter);
         }
