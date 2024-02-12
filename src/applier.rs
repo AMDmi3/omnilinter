@@ -6,6 +6,28 @@ use std::fs;
 use std::path::Path;
 use walkdir::WalkDir;
 
+pub struct ApplierOptions {}
+
+pub struct Applier<'a> {
+    ruleset: &'a Ruleset,
+    reporter: &'a mut dyn Reporter,
+    options: ApplierOptions,
+}
+
+impl Applier<'_> {
+    pub fn new<'a>(
+        ruleset: &'a Ruleset,
+        reporter: &'a mut dyn Reporter,
+        options: ApplierOptions,
+    ) -> Applier<'a> {
+        Applier {
+            ruleset,
+            reporter,
+            options,
+        }
+    }
+}
+
 fn apply_rule_to_path(loc: &FileMatchLocation, rule: &Rule, reporter: &mut dyn Reporter) {
     let text = fs::read_to_string(loc.root.join(loc.file)).unwrap();
 
@@ -74,9 +96,11 @@ fn apply_rule_to_root(loc: &RootMatchLocation, rule: &Rule, reporter: &mut dyn R
     }
 }
 
-pub fn apply_ruleset_to_root(ruleset: &Ruleset, root: &Path, reporter: &mut dyn Reporter) {
-    let loc = &RootMatchLocation { root };
-    for rule in &ruleset.rules {
-        apply_rule_to_root(&loc, &rule, reporter);
+impl Applier<'_> {
+    pub fn apply_to_root(&mut self, root: &Path) {
+        let loc = &RootMatchLocation { root };
+        for rule in &self.ruleset.rules {
+            apply_rule_to_root(&loc, &rule, self.reporter);
+        }
     }
 }

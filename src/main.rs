@@ -4,7 +4,7 @@ mod parser;
 mod reporter;
 mod ruleset;
 
-use crate::applier::apply_ruleset_to_root;
+use crate::applier::{Applier, ApplierOptions};
 use crate::parser::Config;
 use crate::reporter::json::JsonReporter;
 use crate::reporter::stdout::{ReporterOptions, StdoutReporter};
@@ -80,8 +80,10 @@ fn main() {
         args.roots
     };
 
+    let mut applier = Applier::new(&config.ruleset, reporter.as_mut(), ApplierOptions {});
+
     for root in roots {
-        apply_ruleset_to_root(&config.ruleset, &root, reporter.as_mut());
+        applier.apply_to_root(&root);
     }
 
     reporter.flush();
