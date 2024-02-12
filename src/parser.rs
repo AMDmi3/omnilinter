@@ -81,7 +81,7 @@ struct ParsedRule {
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 struct ParsedConfig {
     pub rules: Option<Vec<ParsedRule>>,
-    pub roots: Option<Vec<PathBuf>>,
+    pub roots: Option<Vec<String>>,
 }
 
 impl ParsedConfig {
@@ -150,7 +150,14 @@ impl Config {
         }
 
         if let Some(roots) = parsed.roots {
-            self.roots.extend(roots);
+            for root in roots {
+                let mut paths: Vec<_> = glob::glob(&root)
+                    .unwrap()
+                    .map(|item| item.unwrap())
+                    .collect();
+                paths.sort();
+                self.roots.append(&mut paths);
+            }
         }
     }
 
