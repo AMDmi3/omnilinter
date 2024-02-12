@@ -45,7 +45,7 @@ struct Args {
     #[arg(long, value_name = "EXITCODE")]
     error_exitcode: Option<i32>,
 
-    /// Paths to directories to operate on
+    /// Directories to operate on
     #[arg(value_name = "TARGET_DIR")]
     roots: Vec<PathBuf>,
 }
