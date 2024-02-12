@@ -25,7 +25,7 @@ pub struct Match {
 
 impl TestCase {
     pub fn new() -> Self {
-        let temp_dir = TempDir::new("omniparser-test").unwrap();
+        let temp_dir = TempDir::new("omnilinter-test").unwrap();
 
         fs::create_dir(temp_dir.path().join("root")).unwrap();
 
