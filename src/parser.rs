@@ -1,13 +1,64 @@
 use crate::ruleset::{Glob, Regex, Rule, Ruleset};
-use serde::{Deserialize, Serialize};
+use serde::de::Error;
+use serde::{Deserialize, Deserializer, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
+
+struct OptionalStringSequenceVisitor;
+
+impl<'de> serde::de::Visitor<'de> for OptionalStringSequenceVisitor {
+    type Value = Option<Vec<String>>;
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        formatter.write_str("string with whitespace separated values or sequence of strings")
+    }
+
+    fn visit_str<E>(self, s: &str) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        let res: Vec<_> = s.split_whitespace().map(|s| s.to_string()).collect();
+        if res.is_empty() {
+            Err(E::custom("empty string not allowed"))
+        } else {
+            Ok(Some(res))
+        }
+    }
+
+    fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+    where
+        A: serde::de::SeqAccess<'de>,
+    {
+        let mut res = Vec::with_capacity(seq.size_hint().unwrap_or(0));
+
+        while let Some(value) = seq.next_element::<String>()? {
+            res.push(value);
+        }
+
+        if res.is_empty() {
+            Err(A::Error::custom("empty sequence not allowed"))
+        } else {
+            Ok(Some(res))
+        }
+    }
+}
+
+fn deserialize_optional_string_sequence<'de, D>(
+    deserializer: D,
+) -> Result<Option<Vec<String>>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    deserializer.deserialize_any(OptionalStringSequenceVisitor)
+}
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
 struct ParsedRule {
     pub title: String,
-    pub files: Option<String>,
-    pub nofiles: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_optional_string_sequence")]
+    pub files: Option<Vec<String>>,
+    #[serde(default, deserialize_with = "deserialize_optional_string_sequence")]
+    pub nofiles: Option<Vec<String>>,
     #[serde(rename(serialize = "match", deserialize = "match"))]
     pub pattern: Option<String>,
 }
@@ -63,8 +114,18 @@ impl Config {
                     .into_iter()
                     .map(|parsed_rule| Rule {
                         title: parsed_rule.title,
-                        globs: parsed_rule.files.map(|g| vec![Glob::new(&g).unwrap()]),
-                        antiglobs: parsed_rule.nofiles.map(|g| vec![Glob::new(&g).unwrap()]),
+                        globs: parsed_rule.files.map(|patterns| {
+                            patterns
+                                .iter()
+                                .map(|pattern| Glob::new(&pattern).unwrap())
+                                .collect()
+                        }),
+                        antiglobs: parsed_rule.nofiles.map(|patterns| {
+                            patterns
+                                .iter()
+                                .map(|pattern| Glob::new(&pattern).unwrap())
+                                .collect()
+                        }),
                         regex: parsed_rule.pattern.map(|p| Regex::new(&p).unwrap()),
                     })
                     .collect::<Vec<_>>(),

@@ -115,7 +115,6 @@ fn glob_scope() {
 }
 
 #[test]
-#[ignore]
 fn multiple_globs() {
     TestCase::new()
         .add_file("a.py", "")
@@ -128,6 +127,23 @@ fn multiple_globs() {
             ",
         )
         .assert_matches(vec!["a.py", "a.txt", "a.rs"]);
+
+    TestCase::new()
+        .add_file("README", "")
+        .run_with_rule(
+            "
+            - title: nofiles should not match if any pattern matches
+              nofiles: 'README README.txt'
+            ",
+        )
+        .assert_matches(vec![])
+        .run_with_rule(
+            "
+            - title: nofiles should match if neither pattern matches
+              nofiles: 'README.txt README.md'
+            ",
+        )
+        .assert_matches(vec![""]);
 }
 
 #[test]
@@ -148,4 +164,26 @@ fn nofiles() {
             ",
         )
         .assert_matches(vec![]);
+}
+
+#[test]
+#[should_panic]
+fn empty_globs_string() {
+    TestCase::new().run_with_rule(
+        "
+            - title: nofiles which matches
+              files: '    '
+            ",
+    );
+}
+
+#[test]
+#[should_panic]
+fn empty_globs_seq() {
+    TestCase::new().run_with_rule(
+        "
+            - title: nofiles which matches
+              files: []
+            ",
+    );
 }
