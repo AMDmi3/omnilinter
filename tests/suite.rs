@@ -259,3 +259,17 @@ fn ignore_marker() {
         )
         .assert_matches(vec!["a.py:1"]);
 }
+
+#[test]
+#[should_panic]
+fn error_exitcode() {
+    TestCase::new()
+        .add_file("a.py", "")
+        .add_arg("--error-exitcode=1")
+        .run_with_rule(
+            "
+            - title: test
+              files: '*.py'
+            ",
+        );
+}
