@@ -63,8 +63,8 @@ impl Config {
                     .into_iter()
                     .map(|parsed_rule| Rule {
                         title: parsed_rule.title,
-                        glob: parsed_rule.files.map(|g| Glob::new(&g).unwrap()),
-                        antiglob: parsed_rule.nofiles.map(|g| Glob::new(&g).unwrap()),
+                        globs: parsed_rule.files.map(|g| vec![Glob::new(&g).unwrap()]),
+                        antiglobs: parsed_rule.nofiles.map(|g| vec![Glob::new(&g).unwrap()]),
                         regex: parsed_rule.pattern.map(|p| Regex::new(&p).unwrap()),
                     })
                     .collect::<Vec<_>>(),

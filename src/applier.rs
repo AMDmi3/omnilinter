@@ -35,14 +35,20 @@ fn apply_rule_to_root(loc: &RootMatchLocation, rule: &Rule, reporter: &mut dyn R
     {
         let path = path.strip_prefix(&loc.root).unwrap();
 
-        if let Some(antiglob) = &rule.antiglob {
-            if antiglob.matches_path_with(path, match_options) {
+        if let Some(antiglobs) = &rule.antiglobs {
+            if antiglobs
+                .iter()
+                .any(|glob| glob.matches_path_with(path, match_options))
+            {
                 continue;
             }
         }
 
-        if let Some(glob) = &rule.glob {
-            if glob.matches_path_with(path, match_options) {
+        if let Some(globs) = &rule.globs {
+            if globs
+                .iter()
+                .any(|glob| glob.matches_path_with(path, match_options))
+            {
                 apply_rule_to_path(&FileMatchLocation::from_root(loc, path), rule, reporter);
             }
         } else {

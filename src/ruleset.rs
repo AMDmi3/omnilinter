@@ -39,8 +39,8 @@ impl Glob {
 
 pub struct Rule {
     pub title: String,
-    pub glob: Option<Glob>,
-    pub antiglob: Option<Glob>,
+    pub globs: Option<Vec<Glob>>,
+    pub antiglobs: Option<Vec<Glob>>,
     pub regex: Option<Regex>,
 }
 
