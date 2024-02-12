@@ -10,6 +10,7 @@ use tempdir::TempDir;
 pub struct TestCase {
     temp_dir: TempDir,
     last_matches: Vec<Match>,
+    extra_args: Vec<String>,
 }
 
 #[derive(Deserialize)]
@@ -31,6 +32,7 @@ impl TestCase {
         Self {
             temp_dir: temp_dir,
             last_matches: Default::default(),
+            extra_args: Default::default(),
         }
     }
 
@@ -49,6 +51,12 @@ impl TestCase {
         self
     }
 
+    pub fn add_arg(&mut self, arg: &str) -> &mut Self {
+        self.extra_args.push(arg.to_string());
+
+        self
+    }
+
     pub fn run_with_rule(&mut self, rule: &str) -> &mut Self {
         {
             let mut f = File::create(self.temp_dir.path().join("omnilinter.conf")).unwrap();
@@ -58,12 +66,16 @@ impl TestCase {
 
         let mut cmd = Command::cargo_bin("omnilinter").unwrap();
 
-        let res = cmd
-            .current_dir(self.temp_dir.path())
+        cmd.current_dir(self.temp_dir.path())
             .arg("--config=omnilinter.conf")
             .arg("--json")
-            .arg("root")
-            .ok();
+            .arg("root");
+
+        for arg in &self.extra_args {
+            cmd.arg(arg);
+        }
+
+        let res = cmd.ok();
 
         if let Ok(output) = res {
             self.last_matches =
