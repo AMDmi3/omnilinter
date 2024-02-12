@@ -65,6 +65,7 @@ where
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
+#[serde(deny_unknown_fields)]
 struct ParsedRule {
     pub title: Option<String>,
     #[serde(default, deserialize_with = "deserialize_string_sequence")]
@@ -79,6 +80,7 @@ struct ParsedRule {
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Debug)]
+#[serde(deny_unknown_fields)]
 struct ParsedConfig {
     pub rules: Option<Vec<ParsedRule>>,
     pub roots: Option<Vec<String>>,
