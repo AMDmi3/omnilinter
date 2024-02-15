@@ -1,9 +1,11 @@
 // SPDX-FileCopyrightText: Copyright 2024 Dmitry Marakasov <amdmi3@amdmi3.ru>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use crate::location::*;
+mod context;
+
 use crate::reporter::Reporter;
 use crate::ruleset::{Rule, Ruleset};
+use context::*;
 use glob;
 use std::collections::HashSet;
 use std::fs;
@@ -37,8 +39,8 @@ impl Applier<'_> {
     }
 }
 
-fn apply_rule_to_path(loc: &FileMatchLocation, rule: &Rule, reporter: &mut dyn Reporter) {
-    let text = fs::read_to_string(loc.root.join(loc.file)).unwrap();
+fn apply_rule_to_path(context: &FileMatchContext, rule: &Rule, reporter: &mut dyn Reporter) {
+    let text = fs::read_to_string(context.root.join(context.file)).unwrap();
 
     if let Some(antiregex) = &rule.antiregex {
         for line in text.lines() {
@@ -51,29 +53,26 @@ fn apply_rule_to_path(loc: &FileMatchLocation, rule: &Rule, reporter: &mut dyn R
     if let Some(regex) = &rule.regex {
         for (nline, line) in text.lines().enumerate() {
             if regex.is_match(line) && !line.contains(IGNORE_MARKER) {
-                reporter.report(
-                    &MatchLocation::Line(LineMatchLocation::from_file(loc, nline + 1)),
-                    &rule.title,
-                );
+                reporter.report(&context.to_location_with_line(nline), &rule.title);
             }
         }
     } else {
-        reporter.report(&MatchLocation::File(*loc), &rule.title);
+        reporter.report(&context.to_location(), &rule.title);
     }
 }
 
-fn apply_rule_to_root(loc: &RootMatchLocation, rule: &Rule, reporter: &mut dyn Reporter) {
+fn apply_rule_to_root(context: &RootMatchContext, rule: &Rule, reporter: &mut dyn Reporter) {
     let mut match_options = glob::MatchOptions::new();
     match_options.require_literal_separator = true;
 
     if let Some(antiglobs) = &rule.antiglobs {
-        for path in WalkDir::new(loc.root)
+        for path in WalkDir::new(context.root)
             .into_iter()
             .filter_map(|e| e.ok())
             .filter(|e| e.file_type().is_file())
             .map(|e| e.into_path())
         {
-            let path = path.strip_prefix(&loc.root).unwrap();
+            let path = path.strip_prefix(&context.root).unwrap();
 
             if antiglobs
                 .iter()
@@ -85,29 +84,29 @@ fn apply_rule_to_root(loc: &RootMatchLocation, rule: &Rule, reporter: &mut dyn R
     }
 
     if let Some(globs) = &rule.globs {
-        for path in WalkDir::new(loc.root)
+        for path in WalkDir::new(context.root)
             .into_iter()
             .filter_map(|e| e.ok())
             .filter(|e| e.file_type().is_file())
             .map(|e| e.into_path())
         {
-            let path = path.strip_prefix(&loc.root).unwrap();
+            let path = path.strip_prefix(&context.root).unwrap();
 
             if globs
                 .iter()
                 .any(|glob| glob.matches_path_with(path, match_options))
             {
-                apply_rule_to_path(&FileMatchLocation::from_root(loc, path), rule, reporter);
+                apply_rule_to_path(&FileMatchContext::from_root(context, path), rule, reporter);
             }
         }
     } else {
-        reporter.report(&MatchLocation::Root(*loc), &rule.title);
+        reporter.report(&context.to_location(), &rule.title);
     }
 }
 
 impl Applier<'_> {
     pub fn apply_to_root(&mut self, root: &Path) {
-        let loc = &RootMatchLocation { root };
+        let context = &RootMatchContext { root };
 
         for rule in &self.ruleset.rules {
             if !self.options.required_tags.is_empty()
@@ -116,7 +115,7 @@ impl Applier<'_> {
             {
                 continue;
             }
-            apply_rule_to_root(&loc, &rule, self.reporter);
+            apply_rule_to_root(&context, &rule, self.reporter);
         }
     }
 }

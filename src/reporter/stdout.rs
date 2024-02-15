@@ -27,38 +27,24 @@ impl StdoutReporter {
 
 impl Reporter for StdoutReporter {
     fn report(&mut self, location: &MatchLocation, message: &str) {
-        let current_root = match location {
-            MatchLocation::Root(loc) => loc.root,
-            MatchLocation::File(loc) => loc.root,
-            MatchLocation::Line(loc) => loc.root,
-        };
-
-        if current_root != self.prev_root {
-            println!("in {}", current_root.display());
-            self.prev_root = current_root.to_path_buf();
+        if location.root != self.prev_root {
+            println!("in {}", location.root.display());
+            self.prev_root = location.root.to_path_buf();
         }
 
-        match location {
-            MatchLocation::Root(_) => println!("- {}", message),
-            MatchLocation::File(loc) => {
-                if self.options.full_paths {
-                    println!("- {}: {}", loc.root.join(loc.file).display(), message)
-                } else {
-                    println!("- {}: {}", loc.file.display(), message)
-                }
+        if let Some(file) = &location.file {
+            let path_display = if self.options.full_paths {
+                location.root.join(file.path).display().to_string()
+            } else {
+                file.path.display().to_string()
+            };
+            if let Some(line) = file.line {
+                println!("- {}:{}: {}", path_display, line, message);
+            } else {
+                println!("- {}: {}", path_display, message);
             }
-            MatchLocation::Line(loc) => {
-                if self.options.full_paths {
-                    println!(
-                        "- {}:{}: {}",
-                        loc.root.join(loc.file).display(),
-                        loc.line,
-                        message
-                    )
-                } else {
-                    println!("- {}:{}: {}", loc.file.display(), loc.line, message)
-                }
-            }
+        } else {
+            println!("- {}", message);
         }
 
         self.has_matches = true;
