@@ -1,48 +1,54 @@
 // SPDX-FileCopyrightText: Copyright 2024 Dmitry Marakasov <amdmi3@amdmi3.ru>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use self::yaml::ParsedConfig;
-use crate::ruleset::{Glob, Regex, Rule, Ruleset};
+mod de;
+
+use self::de::*;
+use crate::config::Config;
+use crate::ruleset::{Glob, Regex, Rule};
+use serde::Deserialize;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
-mod yaml;
-
-pub struct Config {
-    pub ruleset: Ruleset,
-    pub roots: Vec<PathBuf>,
+#[derive(Deserialize, PartialEq, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct ParsedRule {
+    title: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_string_sequence")]
+    tags: Vec<String>,
+    #[serde(default, deserialize_with = "deserialize_optional_string_sequence")]
+    files: Option<Vec<String>>,
+    #[serde(default, deserialize_with = "deserialize_optional_string_sequence")]
+    nofiles: Option<Vec<String>>,
+    #[serde(rename(serialize = "match", deserialize = "match"))]
+    pattern: Option<String>,
+    nomatch: Option<String>,
 }
 
-impl Config {
-    pub fn new() -> Config {
-        Config {
-            ruleset: Ruleset {
-                rules: Default::default(),
-            },
-            roots: Default::default(),
-        }
+#[derive(Deserialize, PartialEq, Debug)]
+#[serde(deny_unknown_fields)]
+pub struct ParsedConfig {
+    rules: Option<Vec<ParsedRule>>,
+    roots: Option<Vec<String>>,
+}
+
+impl ParsedConfig {
+    pub fn from_str(s: &str) -> Result<ParsedConfig, serde_yaml::Error> {
+        serde_yaml::from_str(&s)
     }
 
-    #[allow(dead_code)]
-    pub fn from_str(s: &str) -> Config {
-        let mut config = Config::new();
-        config.append_from_str(s);
-        config
+    pub fn from_file(path: &Path) -> Result<ParsedConfig, serde_yaml::Error> {
+        Self::from_str(&fs::read_to_string(path).unwrap())
     }
 
-    #[allow(dead_code)]
-    pub fn from_file(path: &Path) -> Config {
-        let mut config = Config::new();
-        config.append_from_file(path);
-        config
-    }
-
-    pub fn append_from_str_with_description(&mut self, s: &str, source_description: &str) {
-        let parsed = ParsedConfig::from_str(s).unwrap();
-
+    pub fn append_into_config_with_description(
+        self,
+        config: &mut Config,
+        source_description: &str,
+    ) {
         // XXX: switch to collect_into when that's stabilized
-        if let Some(rules) = parsed.rules {
-            self.ruleset.rules.extend(
+        if let Some(rules) = self.rules {
+            config.ruleset.rules.extend(
                 rules
                     .into_iter()
                     .enumerate()
@@ -70,26 +76,34 @@ impl Config {
             );
         }
 
-        if let Some(roots) = parsed.roots {
+        if let Some(roots) = self.roots {
             for root in roots {
                 let mut paths: Vec<_> = glob::glob(&root)
                     .unwrap()
                     .map(|item| item.unwrap())
                     .collect();
                 paths.sort();
-                self.roots.append(&mut paths);
+                config.roots.append(&mut paths);
             }
         }
     }
 
-    pub fn append_from_str(&mut self, s: &str) {
-        self.append_from_str_with_description(s, "???")
+    pub fn append_into_config(self, config: &mut Config) {
+        self.append_into_config_with_description(config, "???")
     }
 
-    pub fn append_from_file(&mut self, path: &Path) {
-        let text = fs::read_to_string(path).unwrap();
+    #[allow(dead_code)]
+    pub fn into_config_with_description(self, source_description: &str) -> Config {
+        let mut config = Config::new();
+        self.append_into_config_with_description(&mut config, source_description);
+        config
+    }
 
-        self.append_from_str_with_description(&text, &path.display().to_string())
+    #[allow(dead_code)]
+    pub fn into_config(self) -> Config {
+        let mut config = Config::new();
+        self.append_into_config(&mut config);
+        config
     }
 }
 
@@ -106,7 +120,7 @@ mod tests {
               match: 'abc'
         ";
 
-        let config = Config::from_str(text);
+        let config = ParsedConfig::from_str(text).unwrap().into_config();
 
         assert_eq!(config.ruleset.rules.len(), 1);
     }

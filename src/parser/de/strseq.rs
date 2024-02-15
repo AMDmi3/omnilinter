@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use serde::de::Error;
-use serde::{Deserialize, Deserializer};
+use serde::Deserializer;
 
 /// serde visitor for flexible string sequences
 ///
@@ -48,46 +48,18 @@ impl<'de> serde::de::Visitor<'de> for StringSequenceVisitor {
     }
 }
 
-fn deserialize_string_sequence<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
+pub fn deserialize_string_sequence<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
 where
     D: Deserializer<'de>,
 {
     Ok(deserializer.deserialize_any(StringSequenceVisitor)?)
 }
 
-fn deserialize_optional_string_sequence<'de, D>(
+pub fn deserialize_optional_string_sequence<'de, D>(
     deserializer: D,
 ) -> Result<Option<Vec<String>>, D::Error>
 where
     D: Deserializer<'de>,
 {
     Ok(Some(deserialize_string_sequence(deserializer)?))
-}
-
-#[derive(Deserialize, PartialEq, Debug)]
-#[serde(deny_unknown_fields)]
-pub struct ParsedRule {
-    pub title: Option<String>,
-    #[serde(default, deserialize_with = "deserialize_string_sequence")]
-    pub tags: Vec<String>,
-    #[serde(default, deserialize_with = "deserialize_optional_string_sequence")]
-    pub files: Option<Vec<String>>,
-    #[serde(default, deserialize_with = "deserialize_optional_string_sequence")]
-    pub nofiles: Option<Vec<String>>,
-    #[serde(rename(serialize = "match", deserialize = "match"))]
-    pub pattern: Option<String>,
-    pub nomatch: Option<String>,
-}
-
-#[derive(Deserialize, PartialEq, Debug)]
-#[serde(deny_unknown_fields)]
-pub struct ParsedConfig {
-    pub rules: Option<Vec<ParsedRule>>,
-    pub roots: Option<Vec<String>>,
-}
-
-impl ParsedConfig {
-    pub fn from_str(s: &str) -> Result<ParsedConfig, serde_yaml::Error> {
-        serde_yaml::from_str(&s)
-    }
 }
