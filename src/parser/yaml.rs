@@ -48,20 +48,20 @@ impl<'de> serde::de::Visitor<'de> for StringSequenceVisitor {
     }
 }
 
+fn deserialize_string_sequence<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    Ok(deserializer.deserialize_any(StringSequenceVisitor)?)
+}
+
 fn deserialize_optional_string_sequence<'de, D>(
     deserializer: D,
 ) -> Result<Option<Vec<String>>, D::Error>
 where
     D: Deserializer<'de>,
 {
-    Ok(Some(deserializer.deserialize_any(StringSequenceVisitor)?))
-}
-
-fn deserialize_string_sequence<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    Ok(deserializer.deserialize_any(StringSequenceVisitor)?)
+    Ok(Some(deserialize_string_sequence(deserializer)?))
 }
 
 #[derive(Deserialize, PartialEq, Debug)]
