@@ -16,11 +16,10 @@ use crate::reporter::stdout::{ReporterOptions, StdoutReporter};
 use crate::reporter::Reporter;
 use clap::Parser;
 use std::path::PathBuf;
-use xdg;
 
 const CONFIG_FILE_NAME: &str = "omnilinter.conf";
 
-#[derive(Parser, Debug)]
+#[derive(clap::Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
     /// Path(s) to configuration file(s)
