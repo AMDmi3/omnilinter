@@ -3,7 +3,7 @@
 
 use crate::ruleset::{Glob, Regex, Rule, Ruleset};
 use serde::de::Error;
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Deserializer};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -67,7 +67,7 @@ where
     Ok(deserializer.deserialize_any(StringSequenceVisitor)?)
 }
 
-#[derive(Deserialize, Serialize, PartialEq, Debug)]
+#[derive(Deserialize, PartialEq, Debug)]
 #[serde(deny_unknown_fields)]
 struct ParsedRule {
     pub title: Option<String>,
@@ -82,7 +82,7 @@ struct ParsedRule {
     pub nomatch: Option<String>,
 }
 
-#[derive(Deserialize, Serialize, PartialEq, Debug)]
+#[derive(Deserialize, PartialEq, Debug)]
 #[serde(deny_unknown_fields)]
 struct ParsedConfig {
     pub rules: Option<Vec<ParsedRule>>,
