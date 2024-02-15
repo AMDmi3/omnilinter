@@ -12,7 +12,7 @@ use std::path::Path;
 
 #[derive(Deserialize, PartialEq, Debug)]
 #[serde(deny_unknown_fields)]
-pub struct ParsedRule {
+struct ParsedRule {
     title: Option<String>,
     #[serde(default, deserialize_with = "deserialize_string_sequence")]
     tags: Vec<String>,
