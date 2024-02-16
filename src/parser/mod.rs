@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: Copyright 2024 Dmitry Marakasov <amdmi3@amdmi3.ru>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-mod de;
+mod types;
 
-use self::de::*;
+use self::types::*;
 use crate::config::Config;
 use crate::ruleset::{Glob, Regex, Rule};
 use serde::Deserialize;
@@ -14,12 +14,9 @@ use std::path::Path;
 #[serde(deny_unknown_fields)]
 struct ParsedRule {
     title: Option<String>,
-    #[serde(default, deserialize_with = "deserialize_string_sequence")]
-    tags: Vec<String>,
-    #[serde(default, deserialize_with = "deserialize_optional_string_sequence")]
-    files: Option<Vec<String>>,
-    #[serde(default, deserialize_with = "deserialize_optional_string_sequence")]
-    nofiles: Option<Vec<String>>,
+    tags: Option<StringSequence>,
+    files: Option<NonEmptyStringSequence>,
+    nofiles: Option<NonEmptyStringSequence>,
     #[serde(rename(serialize = "match", deserialize = "match"))]
     pattern: Option<String>,
     nomatch: Option<String>,
@@ -56,16 +53,14 @@ impl ParsedConfig {
                         title: parsed_rule.title.unwrap_or_else(|| {
                             format!("rule #{} from {}", rule_num + 1, source_description)
                         }),
-                        tags: parsed_rule.tags.into_iter().collect(),
-                        globs: parsed_rule.files.map(|patterns| {
-                            patterns
-                                .iter()
+                        tags: parsed_rule.tags.unwrap_or_default().into_iter().collect(),
+                        globs: parsed_rule.files.map(|seq| {
+                            seq.into_iter()
                                 .map(|pattern| Glob::new(&pattern).unwrap())
                                 .collect()
                         }),
-                        antiglobs: parsed_rule.nofiles.map(|patterns| {
-                            patterns
-                                .iter()
+                        antiglobs: parsed_rule.nofiles.map(|seq| {
+                            seq.into_iter()
                                 .map(|pattern| Glob::new(&pattern).unwrap())
                                 .collect()
                         }),
