@@ -26,6 +26,7 @@ pub struct Match {
     line: Option<usize>,
 }
 
+#[allow(dead_code)]
 impl TestCase {
     pub fn new() -> Self {
         let temp_dir = TempDir::new("omnilinter-test").unwrap();
@@ -92,7 +93,6 @@ impl TestCase {
         cmd.output().unwrap()
     }
 
-    #[allow(dead_code)]
     pub fn run_no_assert(&mut self) {
         self.had_asserts = true;
         self.run();
