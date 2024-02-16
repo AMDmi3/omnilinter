@@ -79,6 +79,24 @@ impl TestCase {
         self
     }
 
+    pub fn generate_files(&mut self, num_files: usize, num_lines: usize) -> &mut Self {
+        for num_file in 1..=num_files {
+            let mut file = File::create(
+                self.temp_dir
+                    .path()
+                    .join("root")
+                    .join(format!("{num_file}.txt")),
+            )
+            .unwrap();
+            for num_line in 1..=num_lines {
+                writeln!(file, "{num_file}:{num_line}").unwrap();
+            }
+            file.sync_all().unwrap();
+        }
+
+        self
+    }
+
     fn run(&self) -> std::process::Output {
         let mut cmd = Command::cargo_bin("omnilinter").unwrap();
 

@@ -11,6 +11,10 @@ categories = ["command-line-utilities", "development-tools"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[[bench]]
+name = "bench"
+path = "tests/bench.rs"
+
 [dependencies]
 assert_cmd = "2.0.13"
 clap = { version = "4.5.0", features = ["derive"] }
