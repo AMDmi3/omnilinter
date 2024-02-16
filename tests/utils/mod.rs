@@ -74,6 +74,7 @@ impl TestCase {
             file.write_all("rules:\n".as_bytes()).unwrap();
         }
         file.write_all(rule.as_bytes()).unwrap();
+        file.write_all(b"\n").unwrap();
 
         self
     }
