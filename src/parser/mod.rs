@@ -2,13 +2,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 mod types;
+pub mod yaml;
 
 use self::types::*;
 use crate::config::Config;
 use crate::ruleset::{Glob, Regex, Rule};
 use serde::Deserialize;
-use std::fs;
-use std::path::Path;
 
 #[derive(Deserialize, PartialEq, Debug)]
 #[serde(deny_unknown_fields)]
@@ -30,14 +29,6 @@ pub struct ParsedConfig {
 }
 
 impl ParsedConfig {
-    pub fn from_str(s: &str) -> Result<ParsedConfig, serde_yaml::Error> {
-        serde_yaml::from_str(&s)
-    }
-
-    pub fn from_file(path: &Path) -> Result<ParsedConfig, serde_yaml::Error> {
-        Self::from_str(&fs::read_to_string(path).unwrap())
-    }
-
     pub fn append_into_config_with_description(
         self,
         config: &mut Config,
@@ -99,24 +90,5 @@ impl ParsedConfig {
         let mut config = Config::new();
         self.append_into_config(&mut config);
         config
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn parse() {
-        let text = "
-            rules:
-            - title: 'test rule'
-              files: '*.*'
-              match: 'abc'
-        ";
-
-        let config = ParsedConfig::from_str(text).unwrap().into_config();
-
-        assert_eq!(config.ruleset.rules.len(), 1);
     }
 }

@@ -66,12 +66,12 @@ fn main() {
 
     if !args.config_paths.is_empty() {
         args.config_paths.iter().for_each(|path| {
-            ParsedConfig::from_file(&path)
+            ParsedConfig::from_yaml_file(&path)
                 .unwrap()
                 .append_into_config(&mut config)
         });
     } else if let Some(path) = default_config_path {
-        ParsedConfig::from_file(&path)
+        ParsedConfig::from_yaml_file(&path)
             .unwrap()
             .append_into_config(&mut config);
     } else {
