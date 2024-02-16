@@ -1,17 +1,12 @@
 // SPDX-FileCopyrightText: Copyright 2024 Dmitry Marakasov <amdmi3@amdmi3.ru>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#![feature(test)]
-
-extern crate test;
-use test::Bencher;
-
 mod utils;
 
+use criterion::{criterion_group, criterion_main, Criterion};
 use utils::TestCase;
 
-#[bench]
-fn file_checks(b: &mut Bencher) {
+fn file_checks(c: &mut Criterion) {
     let mut testcase = TestCase::new();
     testcase
         .generate_files(1000, 1)
@@ -26,11 +21,12 @@ fn file_checks(b: &mut Bencher) {
         .add_rule("- files: no9,txt")
         .add_rule("- files: no10,txt");
 
-    b.iter(|| testcase.run_assert_matches(vec!["1.txt"]));
+    c.bench_function("file checks", |b| {
+        b.iter(|| testcase.run_assert_matches(vec!["1.txt"]))
+    });
 }
 
-#[bench]
-fn pattern_checks(b: &mut Bencher) {
+fn pattern_checks(c: &mut Criterion) {
     let mut testcase = TestCase::new();
     testcase
         .generate_files(1, 20000)
@@ -45,5 +41,10 @@ fn pattern_checks(b: &mut Bencher) {
         .add_rule("- files: 1.txt\n  match: '^no9:9$'")
         .add_rule("- files: 1.txt\n  match: '^no10:10$'");
 
-    b.iter(|| testcase.run_assert_matches(vec!["1.txt:1"]));
+    c.bench_function("pattern checks", |b| {
+        b.iter(|| testcase.run_assert_matches(vec!["1.txt:1"]))
+    });
 }
+
+criterion_group!(benches, file_checks, pattern_checks);
+criterion_main!(benches);
