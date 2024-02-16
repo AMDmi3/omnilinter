@@ -94,11 +94,12 @@ impl TestCase {
 
     #[allow(dead_code)]
     pub fn run_no_assert(&mut self) {
-        self.run();
         self.had_asserts = true;
+        self.run();
     }
 
     pub fn run_assert_matches(&mut self, expected: Vec<&str>) {
+        self.had_asserts = true;
         let output = self.run();
         assert!(output.status.success());
 
@@ -119,25 +120,24 @@ impl TestCase {
         expected.sort();
 
         assert_eq!(expected, res);
-        self.had_asserts = true;
     }
 
     pub fn run_assert_exit_code(&mut self, expected: i32) {
+        self.had_asserts = true;
         let output = self.run();
         assert_eq!(output.status.code(), Some(expected));
-        self.had_asserts = true;
     }
 
     pub fn run_assert_success(&mut self) {
+        self.had_asserts = true;
         let output = self.run();
         assert!(output.status.success());
-        self.had_asserts = true;
     }
 
     pub fn run_assert_failure(&mut self) {
+        self.had_asserts = true;
         let output = self.run();
         assert!(!output.status.success());
-        self.had_asserts = true;
     }
 }
 
