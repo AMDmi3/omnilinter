@@ -12,8 +12,8 @@ use tempdir::TempDir;
 
 pub struct TestCase {
     temp_dir: TempDir,
-    last_matches: Vec<Match>,
     extra_args: Vec<String>,
+    had_asserts: bool,
 }
 
 #[derive(Deserialize)]
@@ -34,8 +34,8 @@ impl TestCase {
 
         Self {
             temp_dir: temp_dir,
-            last_matches: Default::default(),
             extra_args: Default::default(),
+            had_asserts: false,
         }
     }
 
@@ -60,13 +60,24 @@ impl TestCase {
         self
     }
 
-    pub fn run_with_rule(&mut self, rule: &str) -> &mut Self {
-        {
-            let mut f = File::create(self.temp_dir.path().join("omnilinter.conf")).unwrap();
-            f.write_all("rules:\n".as_bytes()).unwrap();
-            f.write_all(rule.as_bytes()).unwrap();
-        }
+    pub fn add_rule(&mut self, rule: &str) -> &mut Self {
+        let ruleset_path = self.temp_dir.path().join("omnilinter.conf");
+        let is_first_open = !ruleset_path.exists();
+        let mut file = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(ruleset_path)
+            .unwrap();
 
+        if is_first_open {
+            file.write_all("rules:\n".as_bytes()).unwrap();
+        }
+        file.write_all(rule.as_bytes()).unwrap();
+
+        self
+    }
+
+    fn run(&self) -> std::process::Output {
         let mut cmd = Command::cargo_bin("omnilinter").unwrap();
 
         cmd.current_dir(self.temp_dir.path())
@@ -78,34 +89,62 @@ impl TestCase {
             cmd.arg(arg);
         }
 
-        let res = cmd.ok();
-
-        if let Ok(output) = res {
-            self.last_matches =
-                serde_json::from_str(std::str::from_utf8(&output.stdout).unwrap()).unwrap();
-        } else {
-            self.last_matches = Default::default();
-            assert!(false, "omnilinter command failed: {:#?}", res);
-        }
-
-        self
+        cmd.output().unwrap()
     }
 
-    pub fn assert_matches(&mut self, mut expected: Vec<&str>) -> &mut Self {
-        let mut res: Vec<String> = self
-            .last_matches
-            .iter()
-            .map(|m| match (&m.file, &m.line) {
-                (Some(file), Some(line)) => format!("{file}:{line}"),
-                (Some(file), None) => file.to_string(),
-                (None, None) => Default::default(),
-                _ => panic!("line number without file cannot happen"),
-            })
-            .collect();
-        res.sort();
-        expected.sort();
-        assert_eq!(expected, res);
+    #[allow(dead_code)]
+    pub fn run_no_assert(&mut self) {
+        self.run();
+        self.had_asserts = true;
+    }
 
-        self
+    pub fn run_assert_matches(&mut self, expected: Vec<&str>) {
+        let output = self.run();
+        assert!(output.status.success());
+
+        let mut res: Vec<String> =
+            serde_json::from_str::<Vec<Match>>(std::str::from_utf8(&output.stdout).unwrap())
+                .unwrap()
+                .iter()
+                .map(|m| match (&m.file, &m.line) {
+                    (Some(file), Some(line)) => format!("{file}:{line}"),
+                    (Some(file), None) => file.to_string(),
+                    (None, None) => Default::default(),
+                    _ => panic!("line number without file cannot happen"),
+                })
+                .collect();
+        res.sort();
+
+        let mut expected = expected.clone();
+        expected.sort();
+
+        assert_eq!(expected, res);
+        self.had_asserts = true;
+    }
+
+    pub fn run_assert_exit_code(&mut self, expected: i32) {
+        let output = self.run();
+        assert_eq!(output.status.code(), Some(expected));
+        self.had_asserts = true;
+    }
+
+    pub fn run_assert_success(&mut self) {
+        let output = self.run();
+        assert!(output.status.success());
+        self.had_asserts = true;
+    }
+
+    pub fn run_assert_failure(&mut self) {
+        let output = self.run();
+        assert!(!output.status.success());
+        self.had_asserts = true;
+    }
+}
+
+impl Drop for TestCase {
+    fn drop(&mut self) {
+        if !self.had_asserts {
+            panic!("test case had no asserts");
+        }
     }
 }
