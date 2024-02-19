@@ -5,6 +5,7 @@ use assert_cmd::prelude::*;
 use serde::Deserialize;
 use std::fs;
 use std::fs::File;
+use std::io;
 use std::io::Write;
 use std::path::Path;
 use std::process::Command;
@@ -106,7 +107,9 @@ impl TestCase {
             cmd.arg(arg);
         }
 
-        cmd.output().unwrap()
+        let res = cmd.output().unwrap();
+        io::stderr().write_all(&res.stderr).unwrap();
+        res
     }
 
     pub fn run_no_assert(&mut self) {
