@@ -7,7 +7,7 @@ use criterion::{criterion_group, criterion_main, Criterion};
 use utils::TestCase;
 
 fn file_checks(c: &mut Criterion) {
-    let mut testcase = TestCase::new();
+    let mut testcase = TestCase::new_for_json_tests();
     testcase
         .generate_files(1000, 1)
         .add_rule("files 1.txt")
@@ -22,12 +22,14 @@ fn file_checks(c: &mut Criterion) {
         .add_rule("files no10,txt");
 
     c.bench_function("file checks", |b| {
-        b.iter(|| testcase.run_assert_matches(vec!["1.txt"]))
+        b.iter(|| {
+            testcase.run().assert_matches(vec!["1.txt"]);
+        })
     });
 }
 
 fn pattern_checks(c: &mut Criterion) {
-    let mut testcase = TestCase::new();
+    let mut testcase = TestCase::new_for_json_tests();
     testcase
         .generate_files(1, 20000)
         .add_rule("files 1.txt\nmatch '^1:1$'")
@@ -42,7 +44,9 @@ fn pattern_checks(c: &mut Criterion) {
         .add_rule("files 1.txt\nmatch '^no10:10$'");
 
     c.bench_function("pattern checks", |b| {
-        b.iter(|| testcase.run_assert_matches(vec!["1.txt:1"]))
+        b.iter(|| {
+            testcase.run().assert_matches(vec!["1.txt:1"]);
+        })
     });
 }
 

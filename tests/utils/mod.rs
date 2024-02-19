@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2024 Dmitry Marakasov <amdmi3@amdmi3.ru>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#![allow(dead_code)]
+
 use assert_cmd::prelude::*;
 use serde::Deserialize;
 use std::fs;
@@ -11,33 +13,48 @@ use std::path::Path;
 use std::process::Command;
 use tempdir::TempDir;
 
-pub struct TestCase {
-    temp_dir: TempDir,
-    extra_args: Vec<String>,
-    had_asserts: bool,
-}
-
 #[derive(Deserialize)]
 pub struct Match {
-    #[allow(dead_code)]
     message: String,
-    #[allow(dead_code)]
     root: String,
     file: Option<String>,
     line: Option<usize>,
 }
 
-#[allow(dead_code)]
+pub struct TestCase {
+    temp_dir: TempDir,
+    args: Vec<String>,
+    had_runs: bool,
+}
+
 impl TestCase {
-    pub fn new() -> Self {
+    pub fn new_for_json_tests() -> Self {
         let temp_dir = TempDir::new("omnilinter-test").unwrap();
 
         fs::create_dir(temp_dir.path().join("root")).unwrap();
 
         Self {
             temp_dir: temp_dir,
-            extra_args: Default::default(),
-            had_asserts: false,
+            args: vec!["--config=omnilinter.conf", "--json", "root"]
+                .into_iter()
+                .map(|a| a.to_string())
+                .collect(),
+            had_runs: false,
+        }
+    }
+
+    pub fn new_for_stdout_tests() -> Self {
+        let temp_dir = TempDir::new("omnilinter-test").unwrap();
+
+        fs::create_dir(temp_dir.path().join("root")).unwrap();
+
+        Self {
+            temp_dir: temp_dir,
+            args: vec!["--config=omnilinter.conf", "root"]
+                .into_iter()
+                .map(|a| a.to_string())
+                .collect(),
+            had_runs: false,
         }
     }
 
@@ -57,7 +74,7 @@ impl TestCase {
     }
 
     pub fn add_arg(&mut self, arg: &str) -> &mut Self {
-        self.extra_args.push(arg.to_string());
+        self.args.push(arg.to_string());
 
         self
     }
@@ -95,35 +112,42 @@ impl TestCase {
         self
     }
 
-    fn run(&self) -> std::process::Output {
+    pub fn run(&mut self) -> TestRunResult {
         let mut cmd = Command::cargo_bin("omnilinter").unwrap();
 
-        cmd.current_dir(self.temp_dir.path())
-            .arg("--config=omnilinter.conf")
-            .arg("--json")
-            .arg("root");
+        cmd.current_dir(self.temp_dir.path());
 
-        for arg in &self.extra_args {
+        for arg in &self.args {
             cmd.arg(arg);
         }
 
-        let res = cmd.output().unwrap();
-        io::stderr().write_all(&res.stderr).unwrap();
-        res
-    }
+        let output = cmd.output().unwrap();
+        self.had_runs = true;
 
-    pub fn run_no_assert(&mut self) {
-        self.had_asserts = true;
-        self.run();
-    }
+        io::stderr().write_all(&output.stderr).unwrap();
 
-    pub fn run_assert_matches(&mut self, expected: Vec<&str>) {
-        self.had_asserts = true;
-        let output = self.run();
-        assert!(output.status.success());
+        TestRunResult { output }
+    }
+}
+
+impl Drop for TestCase {
+    fn drop(&mut self) {
+        if !self.had_runs {
+            panic!("test case was never ran");
+        }
+    }
+}
+
+pub struct TestRunResult {
+    output: std::process::Output,
+}
+
+impl TestRunResult {
+    pub fn assert_matches(&self, expected: Vec<&str>) -> &Self {
+        assert!(self.output.status.success());
 
         let mut res: Vec<String> =
-            serde_json::from_str::<Vec<Match>>(std::str::from_utf8(&output.stdout).unwrap())
+            serde_json::from_str::<Vec<Match>>(std::str::from_utf8(&self.output.stdout).unwrap())
                 .unwrap()
                 .iter()
                 .map(|m| match (&m.file, &m.line) {
@@ -139,31 +163,22 @@ impl TestCase {
         expected.sort();
 
         assert_eq!(res, expected);
+
+        self
     }
 
-    pub fn run_assert_exit_code(&mut self, expected: i32) {
-        self.had_asserts = true;
-        let output = self.run();
-        assert_eq!(output.status.code(), Some(expected));
+    pub fn assert_exit_code(&self, expected: i32) -> &Self {
+        assert_eq!(self.output.status.code(), Some(expected));
+        self
     }
 
-    pub fn run_assert_success(&mut self) {
-        self.had_asserts = true;
-        let output = self.run();
-        assert!(output.status.success());
+    pub fn assert_success(&self) -> &Self {
+        assert!(self.output.status.success());
+        self
     }
 
-    pub fn run_assert_failure(&mut self) {
-        self.had_asserts = true;
-        let output = self.run();
-        assert!(!output.status.success());
-    }
-}
-
-impl Drop for TestCase {
-    fn drop(&mut self) {
-        if !self.had_asserts {
-            panic!("test case had no asserts");
-        }
+    pub fn assert_failure(&self) -> &Self {
+        assert!(!self.output.status.success());
+        self
     }
 }
