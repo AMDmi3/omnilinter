@@ -3,7 +3,7 @@
 
 use crate::config::Config;
 use crate::ruleset::Rule as RulesetRule;
-use crate::ruleset::{FilesCondition, Glob, Regex};
+use crate::ruleset::{Glob, GlobCondition, Regex, RegexCondition};
 use pest::Parser;
 use std::collections::HashSet;
 use std::fs;
@@ -19,8 +19,8 @@ fn parse_tags(pair: pest::iterators::Pair<Rule>) -> HashSet<String> {
         .collect()
 }
 
-fn parse_files(pair: pest::iterators::Pair<Rule>) -> FilesCondition {
-    let mut cond: FilesCondition = Default::default();
+fn parse_globs_condition(pair: pest::iterators::Pair<Rule>) -> GlobCondition {
+    let mut cond: GlobCondition = Default::default();
     for item in pair.into_inner() {
         let item = item.as_str();
         if item.starts_with('!') {
@@ -32,28 +32,39 @@ fn parse_files(pair: pest::iterators::Pair<Rule>) -> FilesCondition {
     cond
 }
 
-fn parse_match(pair: pest::iterators::Pair<Rule>) -> Regex {
-    let regexp_expr = pair.as_str();
-    let regexp_quote_char = regexp_expr.chars().nth(0).unwrap();
+fn parse_regex_str(s: &str) -> Regex {
+    let quote_char = s.chars().nth(0).unwrap();
 
-    let mut regexp: String = String::with_capacity(regexp_expr.len() - 2);
-
+    let mut output: String = String::with_capacity(s.len() - 2);
     let mut escaped = false;
-    for c in regexp_expr[1..regexp_expr.len() - 1].chars() {
+    for c in s[1..s.len() - 1].chars() {
         if escaped {
-            if c != '\\' && c != regexp_quote_char {
-                regexp.push('\\');
+            if c != '\\' && c != quote_char {
+                output.push('\\');
             }
-            regexp.push(c);
+            output.push(c);
             escaped = false;
         } else if c == '\\' {
             escaped = true;
         } else {
-            regexp.push(c);
+            output.push(c);
         }
     }
 
-    Regex::new(&regexp).unwrap()
+    Regex::new(&output).unwrap()
+}
+
+fn parse_regexes_condition(pair: pest::iterators::Pair<Rule>) -> RegexCondition {
+    let mut cond: RegexCondition = Default::default();
+    for item in pair.into_inner() {
+        let item = item.as_str();
+        if item.starts_with('!') {
+            cond.excludes.push(parse_regex_str(&item[1..]));
+        } else {
+            cond.patterns.push(parse_regex_str(item));
+        }
+    }
+    cond
 }
 
 fn parse_rule(
@@ -79,16 +90,16 @@ fn parse_rule(
             }
             Rule::rule_directive_tags => rule.tags = parse_tags(item.into_inner().next().unwrap()),
             Rule::rule_directive_files => {
-                rule.globs = Some(parse_files(item.into_inner().next().unwrap()));
+                rule.globs = Some(parse_globs_condition(item.into_inner().next().unwrap()));
             }
             Rule::rule_directive_nofiles => {
-                rule.antiglobs = Some(parse_files(item.into_inner().next().unwrap()));
+                rule.antiglobs = Some(parse_globs_condition(item.into_inner().next().unwrap()));
             }
             Rule::rule_directive_match => {
-                rule.regex = Some(parse_match(item.into_inner().next().unwrap()));
+                rule.regexes = Some(parse_regexes_condition(item.into_inner().next().unwrap()));
             }
             Rule::rule_directive_nomatch => {
-                rule.antiregex = Some(parse_match(item.into_inner().next().unwrap()));
+                rule.antiregexes = Some(parse_regexes_condition(item.into_inner().next().unwrap()));
             }
             _ => unreachable!("unexpected parser rule type in parse_rule {:#?}", item),
         }

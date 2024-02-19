@@ -220,6 +220,24 @@ mod nofiles_multiple_globs {
 }
 
 #[test]
+fn matches_multiple_patterns() {
+    TestCase::new_for_json_tests()
+        .add_file("a.py", "a\nb\nc")
+        .add_rule("files *.py\nmatch /a/ /b/")
+        .run()
+        .assert_matches(vec!["a.py:1", "a.py:2"]);
+}
+
+#[test]
+fn matches_exclusions() {
+    TestCase::new_for_json_tests()
+        .add_file("a.py", "a\nb\nc")
+        .add_rule("files *.py\nmatch /./ !/^b/")
+        .run()
+        .assert_matches(vec!["a.py:1", "a.py:3"]);
+}
+
+#[test]
 fn nomatch() {
     TestCase::new_for_json_tests()
         .add_file("a.py", "a\nb\n\nc\n")

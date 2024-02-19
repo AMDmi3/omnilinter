@@ -4,7 +4,7 @@
 mod context;
 
 use crate::reporter::Reporter;
-use crate::ruleset::{Rule, Ruleset};
+use crate::ruleset::{GlobCondition, RegexCondition, Rule, Ruleset};
 use context::*;
 use std::collections::HashSet;
 use std::fs;
@@ -38,20 +38,40 @@ impl Applier<'_> {
     }
 }
 
+fn check_globs_condition(
+    condition: &GlobCondition,
+    path: &Path,
+    match_options: glob::MatchOptions,
+) -> bool {
+    condition
+        .patterns
+        .iter()
+        .any(|glob| glob.matches_path_with(path, match_options))
+        && !condition
+            .excludes
+            .iter()
+            .any(|glob| glob.matches_path_with(path, match_options))
+}
+
+fn check_regexes_condition(condition: &RegexCondition, line: &str) -> bool {
+    condition.patterns.iter().any(|regex| regex.is_match(&line))
+        && !condition.excludes.iter().any(|regex| regex.is_match(&line))
+}
+
 fn apply_rule_to_path(context: &FileMatchContext, rule: &Rule, reporter: &mut dyn Reporter) {
     let text = fs::read_to_string(context.root.join(context.file)).unwrap();
 
-    if let Some(antiregex) = &rule.antiregex {
+    if let Some(antiregexes) = &rule.antiregexes {
         for line in text.lines() {
-            if antiregex.is_match(line) {
+            if check_regexes_condition(antiregexes, line) {
                 return;
             }
         }
     }
 
-    if let Some(regex) = &rule.regex {
+    if let Some(regexes) = &rule.regexes {
         for (nline, line) in text.lines().enumerate() {
-            if regex.is_match(line) && !line.contains(IGNORE_MARKER) {
+            if check_regexes_condition(regexes, line) && !line.contains(IGNORE_MARKER) {
                 reporter.report(&context.to_location_with_line(nline), &rule.title);
             }
         }
@@ -73,15 +93,7 @@ fn apply_rule_to_root(context: &RootMatchContext, rule: &Rule, reporter: &mut dy
         {
             let path = path.strip_prefix(&context.root).unwrap();
 
-            if antiglobs
-                .patterns
-                .iter()
-                .any(|glob| glob.matches_path_with(path, match_options))
-                && !antiglobs
-                    .excludes
-                    .iter()
-                    .any(|glob| glob.matches_path_with(path, match_options))
-            {
+            if check_globs_condition(antiglobs, path, match_options) {
                 return;
             }
         }
@@ -96,15 +108,7 @@ fn apply_rule_to_root(context: &RootMatchContext, rule: &Rule, reporter: &mut dy
         {
             let path = path.strip_prefix(&context.root).unwrap();
 
-            if globs
-                .patterns
-                .iter()
-                .any(|glob| glob.matches_path_with(path, match_options))
-                && !globs
-                    .excludes
-                    .iter()
-                    .any(|glob| glob.matches_path_with(path, match_options))
-            {
+            if check_globs_condition(globs, path, match_options) {
                 apply_rule_to_path(&FileMatchContext::from_root(context, path), rule, reporter);
             }
         }
