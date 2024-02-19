@@ -138,7 +138,7 @@ impl TestCase {
         let mut expected = expected.clone();
         expected.sort();
 
-        assert_eq!(expected, res);
+        assert_eq!(res, expected);
     }
 
     pub fn run_assert_exit_code(&mut self, expected: i32) {
