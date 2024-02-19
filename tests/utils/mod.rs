@@ -26,6 +26,7 @@ pub struct TestCase {
     temp_dir: TempDir,
     args: Vec<String>,
     had_runs: bool,
+    silence_stderr: bool,
 }
 
 impl TestCase {
@@ -41,6 +42,7 @@ impl TestCase {
                 .map(|a| a.to_string())
                 .collect(),
             had_runs: false,
+            silence_stderr: false,
         }
     }
 
@@ -56,6 +58,7 @@ impl TestCase {
                 .map(|a| a.to_string())
                 .collect(),
             had_runs: false,
+            silence_stderr: false,
         }
     }
 
@@ -76,6 +79,12 @@ impl TestCase {
 
     pub fn add_arg(&mut self, arg: &str) -> &mut Self {
         self.args.push(arg.to_string());
+
+        self
+    }
+
+    pub fn silence_stderr(&mut self) -> &mut Self {
+        self.silence_stderr = true;
 
         self
     }
@@ -125,7 +134,9 @@ impl TestCase {
         let output = cmd.output().unwrap();
         self.had_runs = true;
 
-        io::stderr().write_all(&output.stderr).unwrap();
+        if !self.silence_stderr {
+            io::stderr().write_all(&output.stderr).unwrap();
+        }
 
         TestRunResult { output }
     }

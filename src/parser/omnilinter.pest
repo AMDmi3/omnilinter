@@ -2,7 +2,7 @@ WHITESPACE = _{ " " | "\t" }
 COMMENT = _{ "#" ~ (!"\n" ~ ANY)* }
 
 rule_title_char = {
-	!("\n" | "\r" | "]") ~ ANY
+	!("\\" | "\n" | "\r" | "]") ~ ANY
 	| "\\" ~ ("\\" | "]")
 }
 rule_title_inner = @{ rule_title_char* }
@@ -15,15 +15,15 @@ tag = @{ tag_char+ }
 tags_list = { tag ~ (","? ~ tag)* }
 
 unquoted_str_char = {
-	!("\n" | "\r" | " " | "\t" | "'" | "\"") ~ ANY
+	!("\\" | "\n" | "\r" | " " | "\t" | "'" | "\"") ~ ANY
 	| "\\" ~ ("\\" | " " | "\t" | "'" | "\"")
 }
 squoted_str_char = {
-	!("\n" | "\r" | "'") ~ ANY
+	!("\\" | "\n" | "\r" | "'") ~ ANY
 	| "\\" ~ ("\\" | "'")
 }
 dquoted_str_char = {
-	!("\n" | "\r" | "\"") ~ ANY
+	!("\\" | "\n" | "\r" | "\"") ~ ANY
 	| "\\" ~ ("\\" | "\"")
 }
 unquoted_str = @{ unquoted_str_char+ }
@@ -36,11 +36,11 @@ excluded_glob = @{ "!" ~ simple_glob }
 globs_list_with_exclusions = { included_glob ~ included_glob* ~ excluded_glob* }
 
 regexp_char = {
-	!("\n" | "\r" | PEEK) ~ ANY
+	!("\\" | "\n" | "\r" | PEEK) ~ ANY
 	| "\\" ~ ("\\" | PEEK)
 }
 simple_regexp = @{
-	PUSH(!("\n" | "\r") ~ ANY) ~
+	PUSH(!("\n" | "\r" | " " | "\t") ~ ANY) ~
 	regexp_char+ ~
 	POP
 }

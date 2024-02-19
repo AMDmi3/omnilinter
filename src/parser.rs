@@ -39,9 +39,7 @@ fn parse_regex_str(s: &str) -> Regex {
     let mut escaped = false;
     for c in s[1..s.len() - 1].chars() {
         if escaped {
-            if c != '\\' && c != quote_char {
-                output.push('\\');
-            }
+            debug_assert!(c == '\\' || c == quote_char); //enforced by the parser
             output.push(c);
             escaped = false;
         } else if c == '\\' {
