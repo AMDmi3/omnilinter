@@ -3,7 +3,6 @@
 
 pub mod pest;
 pub mod types;
-pub mod yaml;
 
 use self::types::*;
 use crate::config::Config;
