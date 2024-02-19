@@ -65,7 +65,7 @@ fn main() {
 
     if !args.config_paths.is_empty() {
         args.config_paths.iter().for_each(|path| {
-            config.merge_from(Config::from_file(&path).unwrap());
+            config.merge_from(Config::from_file(path).unwrap());
         });
     } else if let Some(path) = default_config_path {
         config.merge_from(Config::from_file(&path).unwrap());

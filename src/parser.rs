@@ -23,8 +23,8 @@ fn parse_globs_condition(pair: pest::iterators::Pair<Rule>) -> GlobCondition {
     let mut cond: GlobCondition = Default::default();
     for item in pair.into_inner() {
         let item = item.as_str();
-        if item.starts_with('!') {
-            cond.excludes.push(Glob::new(&item[1..]).unwrap());
+        if let Some(item) = item.strip_prefix('!') {
+            cond.excludes.push(Glob::new(item).unwrap());
         } else {
             cond.patterns.push(Glob::new(item).unwrap());
         }
@@ -33,7 +33,7 @@ fn parse_globs_condition(pair: pest::iterators::Pair<Rule>) -> GlobCondition {
 }
 
 fn parse_regex_str(s: &str) -> Regex {
-    let quote_char = s.chars().nth(0).unwrap();
+    let quote_char = s.chars().next().unwrap();
 
     let mut output: String = String::with_capacity(s.len() - 2);
     let mut escaped = false;
@@ -56,7 +56,7 @@ fn parse_regexes_condition(pair: pest::iterators::Pair<Rule>) -> RegexCondition 
     let mut cond: RegexCondition = Default::default();
     for item in pair.into_inner() {
         let item = item.as_str();
-        if item.starts_with('!') {
+        if let Some(item) = item.strip_prefix('!') {
             cond.excludes.push(parse_regex_str(&item[1..]));
         } else {
             cond.patterns.push(parse_regex_str(item));
@@ -115,7 +115,7 @@ impl Config {
     pub fn from_str_with_desc(s: &str, source_desc: &str) -> Result<Config, ()> {
         let mut config: Config = Default::default();
 
-        let file = ConfigParser::parse(Rule::file, &s)
+        let file = ConfigParser::parse(Rule::file, s)
             .expect("unsuccessful parse")
             .next()
             .unwrap();
@@ -125,7 +125,7 @@ impl Config {
             match item.as_rule() {
                 Rule::config_directive_root => {
                     let root_pattern = item.into_inner().next().unwrap().as_str();
-                    let mut root_paths: Vec<_> = glob::glob(&root_pattern)
+                    let mut root_paths: Vec<_> = glob::glob(root_pattern)
                         .unwrap()
                         .map(|item| item.unwrap())
                         .collect();

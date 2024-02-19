@@ -37,8 +37,7 @@ impl Reporter for JsonReporter {
             line: loc
                 .file
                 .as_ref()
-                .map(|file| file.line.map(|line| line + 1))
-                .flatten(),
+                .and_then(|file| file.line.map(|line| line + 1)),
             message: String::from(message),
         });
     }

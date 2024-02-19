@@ -54,8 +54,8 @@ fn check_globs_condition(
 }
 
 fn check_regexes_condition(condition: &RegexCondition, line: &str) -> bool {
-    condition.patterns.iter().any(|regex| regex.is_match(&line))
-        && !condition.excludes.iter().any(|regex| regex.is_match(&line))
+    condition.patterns.iter().any(|regex| regex.is_match(line))
+        && !condition.excludes.iter().any(|regex| regex.is_match(line))
 }
 
 fn apply_rule_to_path(context: &FileMatchContext, rule: &Rule, reporter: &mut dyn Reporter) {
@@ -91,7 +91,7 @@ fn apply_rule_to_root(context: &RootMatchContext, rule: &Rule, reporter: &mut dy
             .filter(|e| e.file_type().is_file())
             .map(|e| e.into_path())
         {
-            let path = path.strip_prefix(&context.root).unwrap();
+            let path = path.strip_prefix(context.root).unwrap();
 
             if check_globs_condition(nofiles_cond, path, match_options) {
                 return;
@@ -106,7 +106,7 @@ fn apply_rule_to_root(context: &RootMatchContext, rule: &Rule, reporter: &mut dy
             .filter(|e| e.file_type().is_file())
             .map(|e| e.into_path())
         {
-            let path = path.strip_prefix(&context.root).unwrap();
+            let path = path.strip_prefix(context.root).unwrap();
 
             if check_globs_condition(files_cond, path, match_options) {
                 apply_rule_to_path(&FileMatchContext::from_root(context, path), rule, reporter);
@@ -128,7 +128,7 @@ impl Applier<'_> {
             {
                 continue;
             }
-            apply_rule_to_root(&context, &rule, self.reporter);
+            apply_rule_to_root(context, rule, self.reporter);
         }
     }
 }
