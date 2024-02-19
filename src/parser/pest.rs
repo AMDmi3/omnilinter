@@ -86,7 +86,7 @@ impl ParsedConfig {
         rule
     }
 
-    pub fn from_pest_str(s: &str) -> Result<ParsedConfig, ()> {
+    pub fn from_str(s: &str) -> Result<ParsedConfig, ()> {
         let mut config = ParsedConfig {
             rules: Default::default(),
             roots: Default::default(),
@@ -112,15 +112,15 @@ impl ParsedConfig {
                         .push(Self::parse_rule(item));
                 }
                 Rule::EOI => (),
-                _ => unreachable!("unexpected parser rule type in from_pest_str {:#?}", item),
+                _ => unreachable!("unexpected parser rule type in from_str {:#?}", item),
             }
         }
 
         Ok(config)
     }
 
-    pub fn from_pest_file(path: &Path) -> Result<ParsedConfig, ()> {
-        Self::from_pest_str(&fs::read_to_string(path).unwrap())
+    pub fn from_file(path: &Path) -> Result<ParsedConfig, ()> {
+        Self::from_str(&fs::read_to_string(path).unwrap())
     }
 }
 
@@ -136,7 +136,7 @@ mod tests {
             match /abc/
         ";
 
-        let config = ParsedConfig::from_pest_str(text).unwrap().into_config();
+        let config = ParsedConfig::from_str(text).unwrap().into_config();
 
         assert_eq!(config.ruleset.rules.len(), 1);
     }
