@@ -2,9 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 pub mod pest;
-pub mod types;
 
-use self::types::*;
 use crate::config::Config;
 use crate::ruleset::{Glob, Regex, Rule};
 use serde::Deserialize;
@@ -13,9 +11,9 @@ use serde::Deserialize;
 #[serde(deny_unknown_fields)]
 struct ParsedRule {
     title: Option<String>,
-    tags: Option<StringSequence>,
-    files: Option<NonEmptyStringSequence>,
-    nofiles: Option<NonEmptyStringSequence>,
+    tags: Option<Vec<String>>,
+    files: Option<Vec<String>>,
+    nofiles: Option<Vec<String>>,
     #[serde(rename(serialize = "match", deserialize = "match"))]
     pattern: Option<String>,
     nomatch: Option<String>,

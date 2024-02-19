@@ -1,7 +1,6 @@
 // SPDX-FileCopyrightText: Copyright 2024 Dmitry Marakasov <amdmi3@amdmi3.ru>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use super::types::strseq::{NonEmptyStringSequence, StringSequence};
 use crate::parser::{ParsedConfig, ParsedRule};
 use pest::Parser;
 use std::fs;
@@ -12,20 +11,16 @@ use std::path::Path;
 pub struct ConfigParserPest;
 
 impl ParsedConfig {
-    fn parse_tags(pair: pest::iterators::Pair<Rule>) -> StringSequence {
-        StringSequence::from(
-            pair.into_inner()
-                .map(|tag| tag.as_str().to_string())
-                .collect::<Vec<_>>(),
-        )
+    fn parse_tags(pair: pest::iterators::Pair<Rule>) -> Vec<String> {
+        pair.into_inner()
+            .map(|tag| tag.as_str().to_string())
+            .collect()
     }
 
-    fn parse_files(pair: pest::iterators::Pair<Rule>) -> NonEmptyStringSequence {
-        NonEmptyStringSequence::from(
-            pair.into_inner()
-                .map(|glob| glob.as_str().to_string())
-                .collect::<Vec<_>>(),
-        )
+    fn parse_files(pair: pest::iterators::Pair<Rule>) -> Vec<String> {
+        pair.into_inner()
+            .map(|glob| glob.as_str().to_string())
+            .collect()
     }
 
     fn parse_match(pair: pest::iterators::Pair<Rule>) -> String {
