@@ -5,22 +5,18 @@ pub mod pest;
 
 use crate::config::Config;
 use crate::ruleset::{Glob, Regex, Rule};
-use serde::Deserialize;
 
-#[derive(Deserialize, PartialEq, Debug, Default)]
-#[serde(deny_unknown_fields)]
+#[derive(PartialEq, Debug, Default)]
 struct ParsedRule {
     title: Option<String>,
     tags: Option<Vec<String>>,
     files: Option<Vec<String>>,
     nofiles: Option<Vec<String>>,
-    #[serde(rename(serialize = "match", deserialize = "match"))]
     pattern: Option<String>,
     nomatch: Option<String>,
 }
 
-#[derive(Deserialize, PartialEq, Debug)]
-#[serde(deny_unknown_fields)]
+#[derive(PartialEq, Debug)]
 pub struct ParsedConfig {
     rules: Option<Vec<ParsedRule>>,
     roots: Option<Vec<String>>,
