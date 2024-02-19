@@ -40,6 +40,12 @@ impl<'de> serde::de::Visitor<'de> for WhitespaceSeparatedStringOrStringSequenceV
 #[derive(PartialEq, Default, Debug)]
 pub struct StringSequence(Vec<String>);
 
+impl From<Vec<String>> for StringSequence {
+    fn from(v: Vec<String>) -> StringSequence {
+        StringSequence { 0: v }
+    }
+}
+
 impl IntoIterator for StringSequence {
     type Item = String;
     type IntoIter = std::vec::IntoIter<Self::Item>;
@@ -62,6 +68,15 @@ impl<'de> Deserialize<'de> for StringSequence {
 
 #[derive(PartialEq, Debug)]
 pub struct NonEmptyStringSequence(Vec<String>);
+
+impl From<Vec<String>> for NonEmptyStringSequence {
+    fn from(v: Vec<String>) -> NonEmptyStringSequence {
+        if v.is_empty() {
+            panic!("non empty string sequence expected");
+        }
+        NonEmptyStringSequence { 0: v }
+    }
+}
 
 impl IntoIterator for NonEmptyStringSequence {
     type Item = String;

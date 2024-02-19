@@ -20,6 +20,8 @@ harness = false
 assert_cmd = "2.0.13"
 clap = { version = "4.5.0", features = ["derive"] }
 glob = "0.3.1"
+pest = "2.7.7"
+pest_derive = "2.7.7"
 regex = { version = "1.10.3", default-features = false, features = ["std"] }
 serde = { version = "1.0.196", features = ["derive"] }
 serde_json = "1.0.113"

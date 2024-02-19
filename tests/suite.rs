@@ -22,28 +22,28 @@ mod simple_matching {
     #[rstest]
     fn simple_matching_no_match(mut test_case: TestCase) {
         test_case
-            .add_rule("- files: 'd.txt'\n  match: 'bar'")
+            .add_rule("files d.txt\nmatch /bar/")
             .run_assert_matches(vec![]);
     }
 
     #[rstest]
     fn simple_matching_single_match(mut test_case: TestCase) {
         test_case
-            .add_rule("- files: 'a.txt'\n  match: 'bar'")
+            .add_rule("files a.txt\nmatch /bar/")
             .run_assert_matches(vec!["a.txt:2"]);
     }
 
     #[rstest]
     fn simple_matching_multiple_files(mut test_case: TestCase) {
         test_case
-            .add_rule("- files: '*.txt'\n  match: 'bar'")
+            .add_rule("files *.txt\nmatch /bar/")
             .run_assert_matches(vec!["a.txt:2", "b.txt:2", "c.txt:2"]);
     }
 
     #[rstest]
     fn simple_matching_multiple_lines(mut test_case: TestCase) {
         test_case
-            .add_rule("- files: 'a.txt'\n  match: '...' ")
+            .add_rule("files a.txt\nmatch /.../")
             .run_assert_matches(vec!["a.txt:1", "a.txt:2", "a.txt:3"]);
     }
 }
@@ -64,14 +64,14 @@ mod match_file_only {
     #[rstest]
     fn single_match(mut test_case: TestCase) {
         test_case
-            .add_rule("- files: 'a.txt'")
+            .add_rule("files a.txt")
             .run_assert_matches(vec!["a.txt"]);
     }
 
     #[rstest]
     fn multiple_matches(mut test_case: TestCase) {
         test_case
-            .add_rule("- files: '*.txt'")
+            .add_rule("files *.txt")
             .run_assert_matches(vec!["a.txt", "b.txt", "c.txt"]);
     }
 }
@@ -91,43 +91,47 @@ mod glob_scope {
 
     #[rstest]
     fn filename_pattern(mut test_case: TestCase) {
-        test_case
-            .add_rule("- files: '*.py'")
-            .run_assert_matches(vec!["a.py", "dir1/b.py", "dir1/dir2/c.py"]);
+        test_case.add_rule("files *.py").run_assert_matches(vec![
+            "a.py",
+            "dir1/b.py",
+            "dir1/dir2/c.py",
+        ]);
     }
 
     #[rstest]
     fn path_pattern_matched_everywhere(mut test_case: TestCase) {
-        test_case
-            .add_rule("- files: '**/*.py'")
-            .run_assert_matches(vec!["a.py", "dir1/b.py", "dir1/dir2/c.py"]);
+        test_case.add_rule("files **/*.py").run_assert_matches(vec![
+            "a.py",
+            "dir1/b.py",
+            "dir1/dir2/c.py",
+        ]);
     }
 
     #[rstest]
     fn path_pattern_with_leading_slash_matched_everywhere(mut test_case: TestCase) {
         test_case
-            .add_rule("- files: '/**/*.py'")
+            .add_rule("files /**/*.py")
             .run_assert_matches(vec!["a.py", "dir1/b.py", "dir1/dir2/c.py"]);
     }
 
     #[rstest]
     fn path_pattern_with_leading_slash_matched_at_root(mut test_case: TestCase) {
         test_case
-            .add_rule("- files: '/*.py'")
+            .add_rule("files /*.py")
             .run_assert_matches(vec!["a.py"]);
     }
 
     #[rstest]
     fn path_pattern_matched_in_subdir(mut test_case: TestCase) {
         test_case
-            .add_rule("- files: 'dir1/*.py'")
+            .add_rule("files dir1/*.py")
             .run_assert_matches(vec!["dir1/b.py"]);
     }
 
     #[rstest]
     fn path_pattern_with_leading_slash_matched_in_subdir(mut test_case: TestCase) {
         test_case
-            .add_rule("- files: '/dir1/*.py'")
+            .add_rule("files /dir1/*.py")
             .run_assert_matches(vec!["dir1/b.py"]);
     }
 }
@@ -138,7 +142,7 @@ fn multiple_globs() {
         .add_file("a.py", "")
         .add_file("a.txt", "")
         .add_file("a.rs", "")
-        .add_rule("- files: '*.py **/*.txt /*.rs'")
+        .add_rule("files *.py **/*.txt /*.rs")
         .run_assert_matches(vec!["a.py", "a.txt", "a.rs"]);
 }
 
@@ -159,14 +163,14 @@ mod nofiles {
     fn matches(mut test_case: TestCase) {
         // note that we also check that this matches once, not per every file
         test_case
-            .add_rule("- nofiles: '*.txt'")
+            .add_rule("nofiles *.txt")
             .run_assert_matches(vec![""]);
     }
 
     #[rstest]
     fn no_matches(mut test_case: TestCase) {
         test_case
-            .add_rule("- nofiles: '*.py' ")
+            .add_rule("nofiles *.py ")
             .run_assert_matches(vec![]);
     }
 }
@@ -178,7 +182,7 @@ mod nofiles_multiple_globs {
     fn should_not_match_if_any_pattern_matches() {
         TestCase::new()
             .add_file("README", "")
-            .add_rule("- nofiles: 'README README.txt'")
+            .add_rule("nofiles README README.txt")
             .run_assert_matches(vec![]);
     }
 
@@ -186,24 +190,8 @@ mod nofiles_multiple_globs {
     fn should_match_if_neither_pattern_matches() {
         TestCase::new()
             .add_file("README", "")
-            .add_rule("- nofiles: 'README.txt README.md'")
+            .add_rule("nofiles README.txt README.md")
             .run_assert_matches(vec![""]);
-    }
-}
-
-mod empty_glob {
-    use super::*;
-
-    #[test]
-    fn string() {
-        TestCase::new()
-            .add_rule("- files: '     '")
-            .run_assert_failure();
-    }
-
-    #[test]
-    fn seq() {
-        TestCase::new().add_rule("- files: []").run_assert_failure();
     }
 }
 
@@ -212,7 +200,7 @@ fn nomatch() {
     TestCase::new()
         .add_file("a.py", "a\nb\n\nc\n")
         .add_file("b.py", "# SPDX-License-Identifier: GPLv3\na\nb\n\nc\n")
-        .add_rule("- files: '*.py'\n  nomatch: '# SPDX-License-Identifier: GPLv3'")
+        .add_rule("files *.py\nnomatch /# SPDX-License-Identifier: GPLv3/")
         .run_assert_matches(vec!["a.py"]);
 }
 
@@ -225,7 +213,8 @@ mod tags {
             .add_file("a.py", "")
             .add_file("b.py", "")
             .add_arg("--tags=MYTAG")
-            .add_rule("- files: 'a.py'\n- tags: MYTAG\n  files: 'b.py'")
+            .add_rule("files a.py")
+            .add_rule("tags MYTAG\nfiles b.py")
             .run_assert_matches(vec!["b.py"]);
     }
 
@@ -235,7 +224,8 @@ mod tags {
             .add_file("a.py", "")
             .add_file("b.py", "")
             .add_arg("--skip-tags=MYTAG")
-            .add_rule("- files: 'a.py'\n- tags: MYTAG\n  files: 'b.py'")
+            .add_rule("files a.py")
+            .add_rule("tags MYTAG\nfiles b.py")
             .run_assert_matches(vec!["a.py"]);
     }
 }
@@ -244,7 +234,7 @@ mod tags {
 fn ignore_marker() {
     TestCase::new()
         .add_file("a.py", "foo\nbar  # omnilinter: ignore")
-        .add_rule("- files: '*.py'\n  match: 'foo|bar'")
+        .add_rule("files *.py\nmatch /foo|bar/")
         .run_assert_matches(vec!["a.py:1"]);
 }
 
@@ -256,7 +246,7 @@ mod error_exitcode {
         TestCase::new()
             .add_file("a.py", "")
             .add_arg("--error-exitcode=0")
-            .add_rule("- files: '*.py'")
+            .add_rule("files *.py")
             .run_assert_success();
     }
 
@@ -265,7 +255,7 @@ mod error_exitcode {
         TestCase::new()
             .add_file("a.py", "")
             .add_arg("--error-exitcode=3")
-            .add_rule("- files: '*.py'")
+            .add_rule("files *.py")
             .run_assert_exit_code(3);
     }
 }

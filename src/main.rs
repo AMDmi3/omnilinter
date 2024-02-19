@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2024 Dmitry Marakasov <amdmi3@amdmi3.ru>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#![feature(option_get_or_insert_default)]
+
 mod applier;
 mod config;
 mod location;
@@ -66,12 +68,12 @@ fn main() {
 
     if !args.config_paths.is_empty() {
         args.config_paths.iter().for_each(|path| {
-            ParsedConfig::from_yaml_file(&path)
+            ParsedConfig::from_pest_file(&path)
                 .unwrap()
                 .append_into_config(&mut config)
         });
     } else if let Some(path) = default_config_path {
-        ParsedConfig::from_yaml_file(&path)
+        ParsedConfig::from_pest_file(&path)
             .unwrap()
             .append_into_config(&mut config);
     } else {

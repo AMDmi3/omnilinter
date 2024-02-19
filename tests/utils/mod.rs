@@ -63,16 +63,13 @@ impl TestCase {
 
     pub fn add_rule(&mut self, rule: &str) -> &mut Self {
         let ruleset_path = self.temp_dir.path().join("omnilinter.conf");
-        let is_first_open = !ruleset_path.exists();
         let mut file = std::fs::OpenOptions::new()
             .create(true)
             .append(true)
             .open(ruleset_path)
             .unwrap();
 
-        if is_first_open {
-            file.write_all("rules:\n".as_bytes()).unwrap();
-        }
+        file.write_all(b"[]\n").unwrap();
         file.write_all(rule.as_bytes()).unwrap();
         file.write_all(b"\n").unwrap();
 

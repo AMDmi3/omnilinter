@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2024 Dmitry Marakasov <amdmi3@amdmi3.ru>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-mod types;
+pub mod pest;
+pub mod types;
 pub mod yaml;
 
 use self::types::*;
@@ -9,7 +10,7 @@ use crate::config::Config;
 use crate::ruleset::{Glob, Regex, Rule};
 use serde::Deserialize;
 
-#[derive(Deserialize, PartialEq, Debug)]
+#[derive(Deserialize, PartialEq, Debug, Default)]
 #[serde(deny_unknown_fields)]
 struct ParsedRule {
     title: Option<String>,

@@ -1,0 +1,76 @@
+WHITESPACE = _{ " " | "\t" }
+COMMENT = _{ "#" ~ (!"\n" ~ ANY)* }
+
+rule_title_char = {
+	!("\n" | "\r" | "]") ~ ANY
+	| "\\" ~ ("\\" | "]")
+}
+rule_title_inner = @{ rule_title_char* }
+rule_title = ${ "[" ~ rule_title_inner ~ "]" }
+
+tag_char = {
+	!("\n" | "\r" | "," | " " | "\t") ~ ANY
+}
+tag = @{ tag_char+ }
+tags_list = { tag ~ (","? ~ tag)* }
+
+unquoted_str_char = {
+	!("\n" | "\r" | " " | "\t" | "'" | "\"") ~ ANY
+	| "\\" ~ ("\\" | " " | "\t" | "'" | "\"")
+}
+squoted_str_char = {
+	!("\n" | "\r" | "'") ~ ANY
+	| "\\" ~ ("\\" | "'")
+}
+dquoted_str_char = {
+	!("\n" | "\r" | "\"") ~ ANY
+	| "\\" ~ ("\\" | "\"")
+}
+unquoted_str = @{ unquoted_str_char+ }
+squoted_str = @{ "'" ~ squoted_str_char* ~ "'" }
+dquoted_str = @{ "\"" ~ dquoted_str_char* ~ "\"" }
+concat_str = @{ (unquoted_str|squoted_str|dquoted_str)+ }
+simple_glob = @{ concat_str }
+excluded_glob = @{ "!" ~ simple_glob }
+globs_list = { simple_glob ~ simple_glob* }
+globs_list_with_exclusions = { simple_glob ~ simple_glob* ~ excluded_glob* }
+
+regexp_char = {
+	!("\n" | "\r" | PEEK) ~ ANY
+	| "\\" ~ ("\\" | PEEK)
+}
+simple_regexp = @{
+	PUSH(!("\n" | "\r") ~ ANY) ~
+	regexp_char+ ~
+	POP
+}
+excluded_regexp = @{ "!" ~ simple_regexp }
+
+rule_directive_tags = { "tags" ~ tags_list }
+rule_directive_files = { "files" ~ globs_list }
+rule_directive_nofiles = { "nofiles" ~ globs_list }
+rule_directive_match = { "match" ~ simple_regexp }
+rule_directive_nomatch = { "nomatch" ~ simple_regexp }
+
+rule_directive = _{
+	rule_directive_tags |
+	rule_directive_files |
+	rule_directive_nofiles |
+	rule_directive_match |
+	rule_directive_nomatch
+}
+
+rule = {
+	rule_title ~ NEWLINE ~
+	(rule_directive? ~ NEWLINE)+
+}
+
+config_directive_root = { "root" ~ simple_glob }
+config_directive = _{ config_directive_root }
+
+file = {
+    SOI ~
+	(config_directive? ~ NEWLINE)* ~
+	rule* ~
+    EOI
+}
