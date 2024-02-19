@@ -117,17 +117,26 @@ fn apply_rule_to_root(context: &RootMatchContext, rule: &Rule, reporter: &mut dy
     }
 }
 
+fn is_tags_allowed(
+    rule_tags: &HashSet<String>,
+    required_tags: &HashSet<String>,
+    ignored_tags: &HashSet<String>,
+) -> bool {
+    rule_tags.is_disjoint(ignored_tags)
+        && (required_tags.is_empty() || !rule_tags.is_disjoint(required_tags))
+}
+
 impl Applier<'_> {
     pub fn apply_to_root(&mut self, root: &Path) {
         let context = &RootMatchContext { root };
 
-        for rule in &self.ruleset.rules {
-            if !self.options.required_tags.is_empty()
-                && self.options.required_tags.is_disjoint(&rule.tags)
-                || !self.options.ignored_tags.is_disjoint(&rule.tags)
-            {
-                continue;
-            }
+        for rule in self.ruleset.rules.iter().filter(|rule| {
+            is_tags_allowed(
+                &rule.tags,
+                &self.options.required_tags,
+                &self.options.ignored_tags,
+            )
+        }) {
             apply_rule_to_root(context, rule, self.reporter);
         }
     }
