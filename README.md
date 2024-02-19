@@ -11,27 +11,29 @@ Note: ruleset syntax is not final.
 
 - Ruleset:
 
-  ```yaml
-  rules:
-  - title: convert deprecated auto_ptr to unique_ptr
-    files: "*.cpp"
-    match: auto_ptr
+  ```
+  # checks for "auto_ptr" occurances in all .cpp files
+  [convert deprecated auto_ptr to unique_ptr]
+  files *.cpp
+  match /auto_ptr/
 
-  - title: convert setup.py to pyproject.toml
-    files: setup.py
-    nofiles: pyproject.toml
+  # checks for whether setup.py is present, but not pyproject.toml
+  [convert setup.py to pyproject.toml]
+  files setup.py
+  nofiles pyproject.toml
 
-  - title: change indentation to spaces
-    files: "*.py"
-    match: "^	"
+  [change indentation to spaces]
+  files *.py
+  match /^	/
 
-  - title: add license information
-    files: "*.py *.c* *.h* *.rs"
-    nomatch: "^..? SPDX-FileCopyrightText:"
-    nomatch: "^..? SPDX-License-Identifier:"
+  [add license information]
+  files *.py *.c* *.h* *.rs
+  nomatch /^..? SPDX-FileCopyrightText:/
+  nomatch /^..? SPDX-License-Identifier:/
 
-  - title: add README.md
-    nofiles: README.md
+  # checks for absence of some kind of README
+  [add README]
+  nofiles README README.txt README.md README.rst
   ```
 
   See also [config](.omnilinter.conf) used to check omnilinter's own codebase.
