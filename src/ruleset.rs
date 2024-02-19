@@ -41,6 +41,7 @@ impl Glob {
     }
 }
 
+#[derive(Default)]
 pub struct Rule {
     pub title: String,
     pub tags: HashSet<String>,
@@ -50,6 +51,7 @@ pub struct Rule {
     pub antiregex: Option<Regex>,
 }
 
+#[derive(Default)]
 pub struct Ruleset {
     pub rules: Vec<Rule>,
 }

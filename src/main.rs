@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: Copyright 2024 Dmitry Marakasov <amdmi3@amdmi3.ru>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#![feature(option_get_or_insert_default)]
-
 mod applier;
 mod config;
 mod location;
@@ -12,7 +10,6 @@ mod ruleset;
 
 use crate::applier::{Applier, ApplierOptions};
 use crate::config::Config;
-use crate::parser::ParsedConfig;
 use crate::reporter::json::JsonReporter;
 use crate::reporter::stdout::{ReporterOptions, StdoutReporter};
 use crate::reporter::Reporter;
@@ -68,14 +65,10 @@ fn main() {
 
     if !args.config_paths.is_empty() {
         args.config_paths.iter().for_each(|path| {
-            ParsedConfig::from_file(&path)
-                .unwrap()
-                .append_into_config(&mut config)
+            config.merge_from(Config::from_file(&path).unwrap());
         });
     } else if let Some(path) = default_config_path {
-        ParsedConfig::from_file(&path)
-            .unwrap()
-            .append_into_config(&mut config);
+        config.merge_from(Config::from_file(&path).unwrap());
     } else {
         eprintln!("Error: config file is neither specified on the command line, nor present in the application config directory");
     }

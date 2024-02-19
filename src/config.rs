@@ -4,6 +4,7 @@
 use crate::ruleset::Ruleset;
 use std::path::PathBuf;
 
+#[derive(Default)]
 pub struct Config {
     pub ruleset: Ruleset,
     pub roots: Vec<PathBuf>,
@@ -17,5 +18,10 @@ impl Config {
             },
             roots: Default::default(),
         };
+    }
+
+    pub fn merge_from(&mut self, mut other: Config) {
+        self.ruleset.rules.append(&mut other.ruleset.rules);
+        self.roots.append(&mut other.roots);
     }
 }
