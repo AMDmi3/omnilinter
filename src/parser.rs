@@ -3,7 +3,7 @@
 
 use crate::config::Config;
 use crate::ruleset::Rule as RulesetRule;
-use crate::ruleset::{Glob, Regex};
+use crate::ruleset::{FilesCondition, Glob, Regex};
 use pest::Parser;
 use std::collections::HashSet;
 use std::fs;
@@ -19,10 +19,17 @@ fn parse_tags(pair: pest::iterators::Pair<Rule>) -> HashSet<String> {
         .collect()
 }
 
-fn parse_files(pair: pest::iterators::Pair<Rule>) -> Vec<Glob> {
-    pair.into_inner()
-        .map(|glob| Glob::new(glob.as_str()).unwrap())
-        .collect()
+fn parse_files(pair: pest::iterators::Pair<Rule>) -> FilesCondition {
+    let mut cond: FilesCondition = Default::default();
+    for item in pair.into_inner() {
+        let item = item.as_str();
+        if item.starts_with('!') {
+            cond.excludes.push(Glob::new(&item[1..]).unwrap());
+        } else {
+            cond.patterns.push(Glob::new(item).unwrap());
+        }
+    }
+    cond
 }
 
 fn parse_match(pair: pest::iterators::Pair<Rule>) -> Regex {

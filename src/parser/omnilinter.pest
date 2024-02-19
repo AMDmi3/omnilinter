@@ -31,9 +31,9 @@ squoted_str = @{ "'" ~ squoted_str_char* ~ "'" }
 dquoted_str = @{ "\"" ~ dquoted_str_char* ~ "\"" }
 concat_str = @{ (unquoted_str|squoted_str|dquoted_str)+ }
 simple_glob = @{ concat_str }
+included_glob = @{ !("!") ~ concat_str }
 excluded_glob = @{ "!" ~ simple_glob }
-globs_list = { simple_glob ~ simple_glob* }
-globs_list_with_exclusions = { simple_glob ~ simple_glob* ~ excluded_glob* }
+globs_list_with_exclusions = { included_glob ~ included_glob* ~ excluded_glob* }
 
 regexp_char = {
 	!("\n" | "\r" | PEEK) ~ ANY
@@ -47,8 +47,8 @@ simple_regexp = @{
 excluded_regexp = @{ "!" ~ simple_regexp }
 
 rule_directive_tags = { "tags" ~ tags_list }
-rule_directive_files = { "files" ~ globs_list }
-rule_directive_nofiles = { "nofiles" ~ globs_list }
+rule_directive_files = { "files" ~ globs_list_with_exclusions }
+rule_directive_nofiles = { "nofiles" ~ globs_list_with_exclusions }
 rule_directive_match = { "match" ~ simple_regexp }
 rule_directive_nomatch = { "nomatch" ~ simple_regexp }
 

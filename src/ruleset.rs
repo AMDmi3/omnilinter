@@ -42,11 +42,17 @@ impl Glob {
 }
 
 #[derive(Default)]
+pub struct FilesCondition {
+    pub patterns: Vec<Glob>,
+    pub excludes: Vec<Glob>,
+}
+
+#[derive(Default)]
 pub struct Rule {
     pub title: String,
     pub tags: HashSet<String>,
-    pub globs: Option<Vec<Glob>>,
-    pub antiglobs: Option<Vec<Glob>>,
+    pub globs: Option<FilesCondition>,
+    pub antiglobs: Option<FilesCondition>,
     pub regex: Option<Regex>,
     pub antiregex: Option<Regex>,
 }

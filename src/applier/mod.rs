@@ -74,8 +74,13 @@ fn apply_rule_to_root(context: &RootMatchContext, rule: &Rule, reporter: &mut dy
             let path = path.strip_prefix(&context.root).unwrap();
 
             if antiglobs
+                .patterns
                 .iter()
                 .any(|glob| glob.matches_path_with(path, match_options))
+                && !antiglobs
+                    .excludes
+                    .iter()
+                    .any(|glob| glob.matches_path_with(path, match_options))
             {
                 return;
             }
@@ -92,8 +97,13 @@ fn apply_rule_to_root(context: &RootMatchContext, rule: &Rule, reporter: &mut dy
             let path = path.strip_prefix(&context.root).unwrap();
 
             if globs
+                .patterns
                 .iter()
                 .any(|glob| glob.matches_path_with(path, match_options))
+                && !globs
+                    .excludes
+                    .iter()
+                    .any(|glob| glob.matches_path_with(path, match_options))
             {
                 apply_rule_to_path(&FileMatchContext::from_root(context, path), rule, reporter);
             }

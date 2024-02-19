@@ -146,6 +146,15 @@ fn multiple_globs() {
         .run_assert_matches(vec!["a.py", "a.txt", "a.rs"]);
 }
 
+#[test]
+fn glob_exclusions() {
+    TestCase::new()
+        .add_file("a", "")
+        .add_file("b", "")
+        .add_rule("files * ![bc]")
+        .run_assert_matches(vec!["a"]);
+}
+
 mod nofiles {
     use super::*;
 
