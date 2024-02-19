@@ -39,7 +39,7 @@ impl Reporter for StdoutReporter {
                 file.path.display().to_string()
             };
             if let Some(line) = file.line {
-                println!("- {}:{}: {}", path_display, line, message);
+                println!("- {}:{}: {}", path_display, line + 1, message);
             } else {
                 println!("- {}: {}", path_display, message);
             }
