@@ -289,3 +289,16 @@ mod error_exitcode {
             .assert_exit_code(3);
     }
 }
+
+mod stdout {
+    use super::*;
+
+    #[test]
+    fn simple() {
+        TestCase::new_for_stdout_tests()
+            .add_file("a.py", "b\na")
+            .add_rule("files *.py\nmatch /a/")
+            .run()
+            .assert_stdout_contains("a.py:2");
+    }
+}

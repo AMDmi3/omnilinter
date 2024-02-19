@@ -11,6 +11,7 @@ use std::io;
 use std::io::Write;
 use std::path::Path;
 use std::process::Command;
+use std::str::from_utf8;
 use tempdir::TempDir;
 
 #[derive(Deserialize)]
@@ -179,6 +180,16 @@ impl TestRunResult {
 
     pub fn assert_failure(&self) -> &Self {
         assert!(!self.output.status.success());
+        self
+    }
+
+    pub fn assert_stderr_contains(&self, sample: &str) -> &Self {
+        assert!(from_utf8(&self.output.stderr).unwrap().contains(sample));
+        self
+    }
+
+    pub fn assert_stdout_contains(&self, sample: &str) -> &Self {
+        assert!(from_utf8(&self.output.stdout).unwrap().contains(sample));
         self
     }
 }
