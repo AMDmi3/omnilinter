@@ -6,7 +6,6 @@ mod context;
 use crate::reporter::Reporter;
 use crate::ruleset::{Rule, Ruleset};
 use context::*;
-use glob;
 use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
