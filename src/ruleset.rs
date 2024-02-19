@@ -57,10 +57,10 @@ pub struct RegexCondition {
 pub struct Rule {
     pub title: String,
     pub tags: HashSet<String>,
-    pub globs: Option<GlobCondition>,
-    pub antiglobs: Option<GlobCondition>,
-    pub regexes: Option<RegexCondition>,
-    pub antiregexes: Option<RegexCondition>,
+    pub files: Option<GlobCondition>,
+    pub nofiles: Option<GlobCondition>,
+    pub match_: Option<RegexCondition>,
+    pub nomatch: Option<RegexCondition>,
 }
 
 #[derive(Default)]

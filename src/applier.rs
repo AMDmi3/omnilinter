@@ -61,17 +61,17 @@ fn check_regexes_condition(condition: &RegexCondition, line: &str) -> bool {
 fn apply_rule_to_path(context: &FileMatchContext, rule: &Rule, reporter: &mut dyn Reporter) {
     let text = fs::read_to_string(context.root.join(context.file)).unwrap();
 
-    if let Some(antiregexes) = &rule.antiregexes {
+    if let Some(nomatch_cond) = &rule.nomatch {
         for line in text.lines() {
-            if check_regexes_condition(antiregexes, line) {
+            if check_regexes_condition(nomatch_cond, line) {
                 return;
             }
         }
     }
 
-    if let Some(regexes) = &rule.regexes {
+    if let Some(match_cond) = &rule.match_ {
         for (nline, line) in text.lines().enumerate() {
-            if check_regexes_condition(regexes, line) && !line.contains(IGNORE_MARKER) {
+            if check_regexes_condition(match_cond, line) && !line.contains(IGNORE_MARKER) {
                 reporter.report(&context.to_location_with_line(nline), &rule.title);
             }
         }
@@ -84,7 +84,7 @@ fn apply_rule_to_root(context: &RootMatchContext, rule: &Rule, reporter: &mut dy
     let mut match_options = glob::MatchOptions::new();
     match_options.require_literal_separator = true;
 
-    if let Some(antiglobs) = &rule.antiglobs {
+    if let Some(nofiles_cond) = &rule.nofiles {
         for path in WalkDir::new(context.root)
             .into_iter()
             .filter_map(|e| e.ok())
@@ -93,13 +93,13 @@ fn apply_rule_to_root(context: &RootMatchContext, rule: &Rule, reporter: &mut dy
         {
             let path = path.strip_prefix(&context.root).unwrap();
 
-            if check_globs_condition(antiglobs, path, match_options) {
+            if check_globs_condition(nofiles_cond, path, match_options) {
                 return;
             }
         }
     }
 
-    if let Some(globs) = &rule.globs {
+    if let Some(files_cond) = &rule.files {
         for path in WalkDir::new(context.root)
             .into_iter()
             .filter_map(|e| e.ok())
@@ -108,7 +108,7 @@ fn apply_rule_to_root(context: &RootMatchContext, rule: &Rule, reporter: &mut dy
         {
             let path = path.strip_prefix(&context.root).unwrap();
 
-            if check_globs_condition(globs, path, match_options) {
+            if check_globs_condition(files_cond, path, match_options) {
                 apply_rule_to_path(&FileMatchContext::from_root(context, path), rule, reporter);
             }
         }

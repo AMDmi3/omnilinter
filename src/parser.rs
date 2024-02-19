@@ -90,16 +90,16 @@ fn parse_rule(
             }
             Rule::rule_directive_tags => rule.tags = parse_tags(item.into_inner().next().unwrap()),
             Rule::rule_directive_files => {
-                rule.globs = Some(parse_globs_condition(item.into_inner().next().unwrap()));
+                rule.files = Some(parse_globs_condition(item.into_inner().next().unwrap()));
             }
             Rule::rule_directive_nofiles => {
-                rule.antiglobs = Some(parse_globs_condition(item.into_inner().next().unwrap()));
+                rule.nofiles = Some(parse_globs_condition(item.into_inner().next().unwrap()));
             }
             Rule::rule_directive_match => {
-                rule.regexes = Some(parse_regexes_condition(item.into_inner().next().unwrap()));
+                rule.match_ = Some(parse_regexes_condition(item.into_inner().next().unwrap()));
             }
             Rule::rule_directive_nomatch => {
-                rule.antiregexes = Some(parse_regexes_condition(item.into_inner().next().unwrap()));
+                rule.nomatch = Some(parse_regexes_condition(item.into_inner().next().unwrap()));
             }
             _ => unreachable!("unexpected parser rule type in parse_rule {:#?}", item),
         }
