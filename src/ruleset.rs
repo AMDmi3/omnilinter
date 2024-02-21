@@ -5,11 +5,13 @@ pub use regex::Regex;
 use std::collections::HashSet;
 use std::path::Path;
 
+#[derive(PartialEq, Eq, Hash)]
 enum GlobScope {
     Filenames,
     Paths,
 }
 
+#[derive(PartialEq, Eq, Hash)]
 pub struct Glob {
     pattern: glob::Pattern,
     scope: GlobScope,

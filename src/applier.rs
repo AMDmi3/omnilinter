@@ -4,9 +4,9 @@
 mod context;
 
 use crate::reporter::Reporter;
-use crate::ruleset::{GlobCondition, RegexCondition, Rule, Ruleset};
+use crate::ruleset::{Glob, GlobCondition, RegexCondition, Rule, Ruleset};
 use context::*;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::Path;
 use walkdir::WalkDir;
@@ -38,21 +38,6 @@ impl Applier<'_> {
     }
 }
 
-fn check_globs_condition(
-    condition: &GlobCondition,
-    path: &Path,
-    match_options: glob::MatchOptions,
-) -> bool {
-    condition
-        .patterns
-        .iter()
-        .any(|glob| glob.matches_path_with(path, match_options))
-        && !condition
-            .excludes
-            .iter()
-            .any(|glob| glob.matches_path_with(path, match_options))
-}
-
 fn check_regexes_condition(condition: &RegexCondition, line: &str) -> bool {
     condition.patterns.iter().any(|regex| regex.is_match(line))
         && !condition.excludes.iter().any(|regex| regex.is_match(line))
@@ -80,43 +65,6 @@ fn apply_rule_to_path(context: &FileMatchContext, rule: &Rule, reporter: &mut dy
     }
 }
 
-fn apply_rule_to_root(context: &RootMatchContext, rule: &Rule, reporter: &mut dyn Reporter) {
-    let mut match_options = glob::MatchOptions::new();
-    match_options.require_literal_separator = true;
-
-    if let Some(nofiles_cond) = &rule.nofiles {
-        for path in WalkDir::new(context.root)
-            .into_iter()
-            .filter_map(|e| e.ok())
-            .filter(|e| e.file_type().is_file())
-            .map(|e| e.into_path())
-        {
-            let path = path.strip_prefix(context.root).unwrap();
-
-            if check_globs_condition(nofiles_cond, path, match_options) {
-                return;
-            }
-        }
-    }
-
-    if let Some(files_cond) = &rule.files {
-        for path in WalkDir::new(context.root)
-            .into_iter()
-            .filter_map(|e| e.ok())
-            .filter(|e| e.file_type().is_file())
-            .map(|e| e.into_path())
-        {
-            let path = path.strip_prefix(context.root).unwrap();
-
-            if check_globs_condition(files_cond, path, match_options) {
-                apply_rule_to_path(&FileMatchContext::from_root(context, path), rule, reporter);
-            }
-        }
-    } else {
-        reporter.report(&context.to_location(), &rule.title);
-    }
-}
-
 fn is_tags_allowed(
     rule_tags: &HashSet<String>,
     required_tags: &HashSet<String>,
@@ -126,18 +74,111 @@ fn is_tags_allowed(
         && (required_tags.is_empty() || !rule_tags.is_disjoint(required_tags))
 }
 
+struct GlobMatchingCache<'a> {
+    path: &'a Path,
+    match_options: glob::MatchOptions,
+    glob_matches: HashMap<&'a Glob, bool>,
+}
+
+impl<'a> GlobMatchingCache<'a> {
+    pub fn new(path: &'a Path, match_options: glob::MatchOptions) -> Self {
+        GlobMatchingCache {
+            path,
+            match_options,
+            glob_matches: Default::default(),
+        }
+    }
+
+    pub fn check_glob_match(&mut self, glob: &'a Glob) -> bool {
+        *self
+            .glob_matches
+            .entry(glob)
+            .or_insert_with(|| glob.matches_path_with(self.path, self.match_options))
+    }
+
+    pub fn check_condition_match(&mut self, condition: &'a GlobCondition) -> bool {
+        condition
+            .patterns
+            .iter()
+            .any(|glob| self.check_glob_match(glob))
+            && !condition
+                .excludes
+                .iter()
+                .any(|glob| self.check_glob_match(glob))
+    }
+}
+
 impl Applier<'_> {
     pub fn apply_to_root(&mut self, root: &Path) {
-        let context = &RootMatchContext { root };
+        let root_context = &RootMatchContext { root };
 
-        for rule in self.ruleset.rules.iter().filter(|rule| {
-            is_tags_allowed(
-                &rule.tags,
-                &self.options.required_tags,
-                &self.options.ignored_tags,
-            )
-        }) {
-            apply_rule_to_root(context, rule, self.reporter);
+        let mut active_rules: Vec<_> = self
+            .ruleset
+            .rules
+            .iter()
+            .filter(|rule| {
+                is_tags_allowed(
+                    &rule.tags,
+                    &self.options.required_tags,
+                    &self.options.ignored_tags,
+                )
+            })
+            .collect();
+
+        active_rules.retain(|rule| {
+            // NOTE: possible checks to tied to root's file hierarchy (such
+            // as running a process on a whole root) may be implemented here
+            if rule.files.is_none() && rule.nofiles.is_none() {
+                // rules without any glob matchers always match on the root level
+                self.reporter
+                    .report(&root_context.to_location(), &rule.title);
+                return false;
+            }
+            true
+        });
+
+        let mut match_options = glob::MatchOptions::new();
+        match_options.require_literal_separator = true;
+
+        for path in WalkDir::new(root_context.root)
+            .into_iter()
+            .filter_map(|e| e.ok())
+            .filter(|e| e.file_type().is_file())
+            .map(|e| e.into_path())
+        {
+            let path = path.strip_prefix(root_context.root).unwrap();
+
+            let mut matching_cache = GlobMatchingCache::new(&path, match_options);
+
+            active_rules.retain(|rule| {
+                if let Some(condition) = &rule.nofiles {
+                    if matching_cache.check_condition_match(condition) {
+                        // when nofiles matches processing for this rule stops immediately
+                        return false;
+                    }
+                }
+
+                if let Some(condition) = &rule.files {
+                    if matching_cache.check_condition_match(condition) {
+                        apply_rule_to_path(
+                            &FileMatchContext::from_root(root_context, path),
+                            rule,
+                            self.reporter,
+                        );
+                    }
+                }
+                true
+            });
         }
+
+        active_rules.iter().for_each(|rule| {
+            if rule.files.is_none() {
+                // Rules which end up here are rules with `nofiles` condition
+                // which hasn't matched and no `files` conditions. So, these
+                // match on the root level
+                self.reporter
+                    .report(&root_context.to_location(), &rule.title);
+            }
+        });
     }
 }
