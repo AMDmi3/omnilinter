@@ -119,6 +119,16 @@ mod nofiles {
             .run()
             .assert_matches(vec![]);
     }
+
+    #[rstest]
+    fn matches_at_end(mut test_case: TestCase) {
+        // the point is to check that despite nofiles doesn't match on
+        // the first file (a.py), it should still match on the last file
+        test_case
+            .add_rule("nofiles c.py")
+            .run()
+            .assert_matches(vec![]);
+    }
 }
 
 mod nofiles_multiple_globs {
