@@ -90,6 +90,17 @@ impl<'a> GlobMatchingCache<'a> {
     }
 
     pub fn check_glob_match(&mut self, glob: &'a Glob) -> bool {
+        // XXX: benchmarks shows that the cache yields 2x performance
+        // regression compared to straightforward glob matching in all
+        // cases except "multiple rules with same pattern". This is
+        // quite expected as we still have to match each pattern from
+        // scratch plus we have cache overhead. In practice, howerver
+        // rules are expected to have same patterns (such as a lot of
+        // rules for *.py), so the cache still makes sence. Also, the
+        // regression can be fixed by caching by pre-grouping globs
+        // (during some kind of ruleset compilation phase) and assiging
+        // unique incrementing ids to them, then indexing this cache
+        // by these ids instead of computing hashes.
         *self
             .glob_matches
             .entry(glob)
