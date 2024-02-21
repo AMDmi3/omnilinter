@@ -12,12 +12,7 @@ pub struct Config {
 
 impl Config {
     pub fn new() -> Config {
-        Config {
-            ruleset: Ruleset {
-                rules: Default::default(),
-            },
-            roots: Default::default(),
-        }
+        Default::default()
     }
 
     pub fn merge_from(&mut self, mut other: Config) {
