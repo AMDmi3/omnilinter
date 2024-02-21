@@ -80,30 +80,65 @@ fn nofile_checks_with_many_matching_rules(c: &mut Criterion) {
     });
 }
 
-fn pattern_checks(c: &mut Criterion) {
+fn match_checks_with_little_matching_rules(c: &mut Criterion) {
     let mut testcase = TestCase::new_for_json_tests();
-    testcase
-        .generate_files(1, 20000)
-        .add_rule("files 1.txt\nmatch '^1:1$'")
-        .add_rule("files 1.txt\nmatch '^no2:2$'")
-        .add_rule("files 1.txt\nmatch '^no3:3$'")
-        .add_rule("files 1.txt\nmatch '^no4:4$'")
-        .add_rule("files 1.txt\nmatch '^no5:5$'")
-        .add_rule("files 1.txt\nmatch '^no6:6$'")
-        .add_rule("files 1.txt\nmatch '^no7:7$'")
-        .add_rule("files 1.txt\nmatch '^no8:8$'")
-        .add_rule("files 1.txt\nmatch '^no9:9$'")
-        .add_rule("files 1.txt\nmatch '^no10:10$'");
+    testcase.generate_files(1, 100000);
+    testcase.add_rule("files 1.txt\nmatch '^1:1$'");
+    for i in 2..=100 {
+        testcase.add_rule(&format!("files 1.txt\nmatch /^no-1:{i}/"));
+    }
 
-    c.bench_function("pattern checks", |b| {
+    c.bench_function("match checks with little matching rules", |b| {
         b.iter(|| {
-            testcase.run().assert_matches(vec!["1.txt:1"]);
+            testcase.run();
+        })
+    });
+}
+
+fn match_checks_with_many_matching_rules(c: &mut Criterion) {
+    let mut testcase = TestCase::new_for_json_tests();
+    testcase.generate_files(1, 20000);
+    for i in 1..=100 {
+        testcase.add_rule(&format!("files 1.txt\nmatch /^1:{i}/"));
+    }
+
+    c.bench_function("match checks with many matching rules", |b| {
+        b.iter(|| {
+            testcase.run();
+        })
+    });
+}
+
+fn nomatch_checks_with_little_matching_rules(c: &mut Criterion) {
+    let mut testcase = TestCase::new_for_json_tests();
+    testcase.generate_files(1, 100000);
+    for i in 1..=100 {
+        testcase.add_rule(&format!("files 1.txt\nnomatch /^no-1:{i}/"));
+    }
+
+    c.bench_function("nomatch checks with little matching rules", |b| {
+        b.iter(|| {
+            testcase.run();
+        })
+    });
+}
+
+fn nomatch_checks_with_many_matching_rules(c: &mut Criterion) {
+    let mut testcase = TestCase::new_for_json_tests();
+    testcase.generate_files(1, 20000);
+    for i in 1..=100 {
+        testcase.add_rule(&format!("files 1.txt\nnomatch /^1:{i}/"));
+    }
+
+    c.bench_function("nomatch checks with many matching rules", |b| {
+        b.iter(|| {
+            testcase.run();
         })
     });
 }
 
 criterion_group!(
-    name = benches;
+    name = file_benches;
     config = Criterion::default().sample_size(25);
     targets =
     file_checks_with_little_matching_rules,
@@ -111,6 +146,16 @@ criterion_group!(
     file_checks_with_many_matching_rules_with_same_pattern,
     nofile_checks_with_little_matching_rules,
     nofile_checks_with_many_matching_rules,
-    pattern_checks
 );
-criterion_main!(benches);
+
+criterion_group!(
+    name = match_benches;
+    config = Criterion::default().sample_size(25);
+    targets =
+    match_checks_with_little_matching_rules,
+    match_checks_with_many_matching_rules,
+    nomatch_checks_with_little_matching_rules,
+    nomatch_checks_with_many_matching_rules,
+);
+
+criterion_main!(file_benches, match_benches);
