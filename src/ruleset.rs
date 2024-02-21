@@ -3,6 +3,7 @@
 
 pub use regex::Regex;
 use std::collections::HashSet;
+use std::hash::{Hash, Hasher};
 use std::path::Path;
 
 #[derive(PartialEq, Eq, Hash)]
@@ -11,11 +12,25 @@ enum GlobScope {
     Paths,
 }
 
-#[derive(PartialEq, Eq, Hash)]
 pub struct Glob {
     pattern: glob::Pattern,
     scope: GlobScope,
 }
+
+impl Hash for Glob {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.pattern.as_str().hash(state);
+        self.scope.hash(state);
+    }
+}
+
+impl PartialEq for Glob {
+    fn eq(&self, other: &Self) -> bool {
+        self.pattern.as_str() == other.pattern.as_str() && self.scope == other.scope
+    }
+}
+
+impl Eq for Glob {}
 
 impl Glob {
     pub fn new(pattern: &str) -> Result<Self, glob::PatternError> {
