@@ -169,57 +169,65 @@ impl Applier<'_> {
         let mut match_options = glob::MatchOptions::new();
         match_options.require_literal_separator = true;
 
-        for path in WalkDir::new(root_context.root)
+        let paths = WalkDir::new(root_context.root)
             .sort_by_file_name()
             .into_iter()
             .filter_map(|e| e.ok())
             .filter(|e| e.file_type().is_file())
-            .map(|e| e.into_path())
-        {
-            let path = path.strip_prefix(root_context.root).unwrap();
+            .map(|e| {
+                e.into_path()
+                    .strip_prefix(root_context.root)
+                    .unwrap()
+                    .to_path_buf()
+            })
+            .collect::<Vec<_>>();
 
+        // early drop not matching nofiles rules
+        paths.iter().for_each(|path| {
             let mut matching_cache = GlobMatchingCache::new(&path, match_options);
 
-            let mut content_rules: Vec<&Rule> = Vec::with_capacity(active_rules.len());
+            active_rules.retain(|rule| {
+                !rule
+                    .nofiles
+                    .as_ref()
+                    .and_then(|condition| Some(matching_cache.check_condition_match(condition)))
+                    .unwrap_or(false)
+            });
+        });
+
+        paths.iter().for_each(|path| {
+            let mut matching_cache = GlobMatchingCache::new(&path, match_options);
+
+            let mut content_rules = Vec::<&Rule>::with_capacity(active_rules.len());
 
             active_rules.retain(|rule| {
-                if let Some(condition) = &rule.nofiles {
-                    if matching_cache.check_condition_match(condition) {
-                        // when nofiles matches processing for this rule stops immediately
-                        return false;
-                    }
-                }
-
                 if let Some(condition) = &rule.files {
+                    // files rules
                     if matching_cache.check_condition_match(condition) {
                         if rule.match_.is_none() && rule.nomatch.is_none() {
-                            // rules without any content conditions match on the file level
+                            // rules without content conditions match here
                             self.reporter
-                                .report(&root_context.to_location_with_file(path), &rule.title);
+                                .report(&root_context.to_location_with_file(&path), &rule.title);
                         } else {
+                            // rules with content conditions are batched for content checks
                             content_rules.push(&rule);
                         }
                     }
+                } else {
+                    // nofiles-only rules
+                    self.reporter
+                        .report(&root_context.to_location(), &rule.title);
+                    return false;
                 }
                 true
             });
 
             if !content_rules.is_empty() {
                 if let Err(err) =
-                    apply_content_rules(&root_context.to_file(path), content_rules, self.reporter)
+                    apply_content_rules(&root_context.to_file(&path), content_rules, self.reporter)
                 {
                     eprintln!("failed to process {}: {}", path.display(), err);
                 }
-            }
-        }
-
-        active_rules.iter().for_each(|rule| {
-            if rule.files.is_none() {
-                // Rules which end up here are rules with `nofiles` condition
-                // which hasn't matched and no `files` conditions. So, these
-                // match on the root level
-                self.reporter
-                    .report(&root_context.to_location(), &rule.title);
             }
         });
     }

@@ -131,6 +131,26 @@ mod nofiles {
     }
 }
 
+#[test]
+fn files_before_nofiles() {
+    TestCase::new_for_json_tests()
+        .add_file("a.py", "")
+        .add_file("b.py", "")
+        .add_rule("files a.py\nnofiles b.py\n")
+        .run()
+        .assert_matches(vec![]);
+}
+
+#[test]
+fn files_with_content_before_nofiles() {
+    TestCase::new_for_json_tests()
+        .add_file("a.py", "a")
+        .add_file("b.py", "")
+        .add_rule("files a.py\nmatch /a/\nnofiles b.py\n")
+        .run()
+        .assert_matches(vec![]);
+}
+
 mod nofiles_multiple_globs {
     use super::*;
 
