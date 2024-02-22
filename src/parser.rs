@@ -1,6 +1,9 @@
 // SPDX-FileCopyrightText: Copyright 2024 Dmitry Marakasov <amdmi3@amdmi3.ru>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#[cfg(test)]
+mod tests;
+
 use crate::config::Config;
 use crate::ruleset::Rule as RulesetRule;
 use crate::ruleset::{Glob, GlobCondition, Regex, RegexCondition};
@@ -169,23 +172,5 @@ impl Config {
             &fs::read_to_string(path).unwrap(),
             &path.display().to_string(),
         )
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn parse() {
-        let text = "
-            [test rule]
-            files *.*
-            match /abc/
-        ";
-
-        let config = Config::from_str(text).unwrap();
-
-        assert_eq!(config.ruleset.rules.len(), 1);
     }
 }
