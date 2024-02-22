@@ -191,10 +191,8 @@ impl Applier<'_> {
                     if matching_cache.check_condition_match(condition) {
                         if rule.match_.is_none() && rule.nomatch.is_none() {
                             // rules without any content conditions match on the file level
-                            self.reporter.report(
-                                &FileMatchContext::from_root(root_context, path).to_location(),
-                                &rule.title,
-                            );
+                            self.reporter
+                                .report(&root_context.to_location_with_file(path), &rule.title);
                         } else {
                             content_rules.push(&rule);
                         }
@@ -204,11 +202,7 @@ impl Applier<'_> {
             });
 
             if !content_rules.is_empty() {
-                apply_content_rules(
-                    &FileMatchContext::from_root(root_context, path),
-                    content_rules,
-                    self.reporter,
-                );
+                apply_content_rules(&root_context.to_file(path), content_rules, self.reporter);
             }
         }
 

@@ -15,6 +15,23 @@ impl<'a> RootMatchContext<'a> {
             file: None,
         }
     }
+
+    pub fn to_location_with_file(&self, file: &'a Path) -> MatchLocation {
+        MatchLocation {
+            root: self.root,
+            file: Some(MatchLocationFile {
+                path: file,
+                line: None,
+            }),
+        }
+    }
+
+    pub fn to_file(&self, file: &'a Path) -> FileMatchContext<'a> {
+        FileMatchContext {
+            root: self.root,
+            file,
+        }
+    }
 }
 
 pub struct FileMatchContext<'a> {
@@ -23,13 +40,6 @@ pub struct FileMatchContext<'a> {
 }
 
 impl<'a> FileMatchContext<'a> {
-    pub fn from_root(root: &RootMatchContext<'a>, file: &'a Path) -> FileMatchContext<'a> {
-        FileMatchContext {
-            root: root.root,
-            file,
-        }
-    }
-
     pub fn to_location(&self) -> MatchLocation {
         MatchLocation {
             root: self.root,
