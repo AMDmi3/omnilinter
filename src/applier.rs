@@ -7,7 +7,8 @@ use crate::reporter::Reporter;
 use crate::ruleset::{Glob, GlobCondition, RegexCondition, Rule, Ruleset};
 use context::*;
 use std::collections::{HashMap, HashSet};
-use std::fs;
+use std::fs::File;
+use std::io::{BufRead, BufReader};
 use std::path::Path;
 use walkdir::WalkDir;
 
@@ -43,26 +44,40 @@ fn check_regexes_condition(condition: &RegexCondition, line: &str) -> bool {
         && !condition.excludes.iter().any(|regex| regex.is_match(line))
 }
 
-fn apply_rule_to_path(context: &FileMatchContext, rule: &Rule, reporter: &mut dyn Reporter) {
-    let text = fs::read_to_string(context.root.join(context.file)).unwrap();
+fn apply_content_rules(
+    context: &FileMatchContext,
+    mut rules: Vec<&Rule>,
+    reporter: &mut dyn Reporter,
+) {
+    let file = File::open(context.root.join(context.file)).unwrap();
+    let reader = BufReader::new(file);
 
-    if let Some(nomatch_cond) = &rule.nomatch {
-        for line in text.lines() {
-            if check_regexes_condition(nomatch_cond, line) {
-                return;
+    for (nline, line) in reader.lines().map(std::result::Result::unwrap).enumerate() {
+        rules.retain(|rule| {
+            if let Some(condition) = &rule.nomatch {
+                if check_regexes_condition(condition, &line) {
+                    // when nomatch matches, processing for this rule stops immediately
+                    return false;
+                }
             }
-        }
+
+            if let Some(condition) = &rule.match_ {
+                if check_regexes_condition(condition, &line) && !line.contains(IGNORE_MARKER) {
+                    reporter.report(&context.to_location_with_line(nline), &rule.title);
+                }
+            }
+            true
+        });
     }
 
-    if let Some(match_cond) = &rule.match_ {
-        for (nline, line) in text.lines().enumerate() {
-            if check_regexes_condition(match_cond, line) && !line.contains(IGNORE_MARKER) {
-                reporter.report(&context.to_location_with_line(nline), &rule.title);
-            }
+    rules.iter().for_each(|rule| {
+        if rule.match_.is_none() {
+            // Rules which end up here are rules with `nomatch` condition
+            // which hasn't matched and no `match` conditions. So, these
+            // match on the file level
+            reporter.report(&context.to_location(), &rule.title);
         }
-    } else {
-        reporter.report(&context.to_location(), &rule.title);
-    }
+    });
 }
 
 fn is_tags_allowed(
@@ -161,6 +176,8 @@ impl Applier<'_> {
 
             let mut matching_cache = GlobMatchingCache::new(&path, match_options);
 
+            let mut content_rules: Vec<&Rule> = Vec::with_capacity(active_rules.len());
+
             active_rules.retain(|rule| {
                 if let Some(condition) = &rule.nofiles {
                     if matching_cache.check_condition_match(condition) {
@@ -171,15 +188,27 @@ impl Applier<'_> {
 
                 if let Some(condition) = &rule.files {
                     if matching_cache.check_condition_match(condition) {
-                        apply_rule_to_path(
-                            &FileMatchContext::from_root(root_context, path),
-                            rule,
-                            self.reporter,
-                        );
+                        if rule.match_.is_none() && rule.nomatch.is_none() {
+                            // rules without any content conditions match on the file level
+                            self.reporter.report(
+                                &FileMatchContext::from_root(root_context, path).to_location(),
+                                &rule.title,
+                            );
+                        } else {
+                            content_rules.push(&rule);
+                        }
                     }
                 }
                 true
             });
+
+            if !content_rules.is_empty() {
+                apply_content_rules(
+                    &FileMatchContext::from_root(root_context, path),
+                    content_rules,
+                    self.reporter,
+                );
+            }
         }
 
         active_rules.iter().for_each(|rule| {
