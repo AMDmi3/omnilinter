@@ -48,11 +48,12 @@ fn apply_content_rules(
     context: &FileMatchContext,
     mut rules: Vec<&Rule>,
     reporter: &mut dyn Reporter,
-) {
-    let file = File::open(context.root.join(context.file)).unwrap();
+) -> Result<(), std::io::Error> {
+    let file = File::open(context.root.join(context.file))?;
     let reader = BufReader::new(file);
 
-    for (nline, line) in reader.lines().map(std::result::Result::unwrap).enumerate() {
+    for (nline, line) in reader.lines().enumerate() {
+        let line = line?;
         rules.retain(|rule| {
             if let Some(condition) = &rule.nomatch {
                 if check_regexes_condition(condition, &line) {
@@ -78,6 +79,8 @@ fn apply_content_rules(
             reporter.report(&context.to_location(), &rule.title);
         }
     });
+
+    Ok(())
 }
 
 fn is_tags_allowed(
@@ -202,7 +205,11 @@ impl Applier<'_> {
             });
 
             if !content_rules.is_empty() {
-                apply_content_rules(&root_context.to_file(path), content_rules, self.reporter);
+                if let Err(err) =
+                    apply_content_rules(&root_context.to_file(path), content_rules, self.reporter)
+                {
+                    eprintln!("failed to process {}: {}", path.display(), err);
+                }
             }
         }
 
