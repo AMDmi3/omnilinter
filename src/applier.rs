@@ -167,6 +167,7 @@ impl Applier<'_> {
         match_options.require_literal_separator = true;
 
         for path in WalkDir::new(root_context.root)
+            .sort_by_file_name()
             .into_iter()
             .filter_map(|e| e.ok())
             .filter(|e| e.file_type().is_file())
