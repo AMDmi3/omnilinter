@@ -19,6 +19,8 @@ jobs:
           components: rustfmt
       - name: Build
         run: cargo build
+        env:
+          RUSTFLAGS: -Dwarnings
       - name: Test
         run: cargo test
       - name: Format check
