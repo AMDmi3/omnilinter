@@ -88,3 +88,12 @@ fn nomatch() {
         .run()
         .assert_matches(vec!["a.py"]);
 }
+
+#[test]
+fn match_before_nomatch() {
+    TestCase::new_for_json_tests()
+        .add_file("a.py", "a\nb\n")
+        .add_rule("files *.py\nmatch /a/\nnomatch /b/\n")
+        .run()
+        .assert_matches(vec![]);
+}
