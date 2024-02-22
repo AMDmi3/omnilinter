@@ -69,3 +69,15 @@ mod stdout {
             .assert_stdout_contains("a.py:2");
     }
 }
+
+mod parsing {
+    use super::*;
+
+    #[test]
+    fn multiple_conditions() {
+        TestCase::new_for_stdout_tests()
+            .add_rule("files *.py\nfiles *.py")
+            .run()
+            .assert_failure();
+    }
+}

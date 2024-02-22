@@ -86,17 +86,34 @@ fn parse_rule(
                     rule.title = title.to_string();
                 }
             }
-            Rule::rule_directive_tags => rule.tags = parse_tags(item.into_inner().next().unwrap()),
+            Rule::rule_directive_tags => {
+                if !rule.tags.is_empty() {
+                    panic!("tags specified multiple times");
+                }
+                rule.tags = parse_tags(item.into_inner().next().unwrap())
+            }
             Rule::rule_directive_files => {
+                if rule.files.is_some() {
+                    panic!("files condition specified multiple times");
+                }
                 rule.files = Some(parse_globs_condition(item.into_inner().next().unwrap()));
             }
             Rule::rule_directive_nofiles => {
+                if rule.nofiles.is_some() {
+                    panic!("nofiles condition specified multiple times");
+                }
                 rule.nofiles = Some(parse_globs_condition(item.into_inner().next().unwrap()));
             }
             Rule::rule_directive_match => {
+                if rule.match_.is_some() {
+                    panic!("match condition specified multiple times");
+                }
                 rule.match_ = Some(parse_regexes_condition(item.into_inner().next().unwrap()));
             }
             Rule::rule_directive_nomatch => {
+                if rule.nomatch.is_some() {
+                    panic!("nomatch condition specified multiple times");
+                }
                 rule.nomatch = Some(parse_regexes_condition(item.into_inner().next().unwrap()));
             }
             _ => unreachable!("unexpected parser rule type in parse_rule {:#?}", item),
