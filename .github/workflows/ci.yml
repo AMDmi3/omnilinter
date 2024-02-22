@@ -45,8 +45,7 @@ jobs:
       - name: Collect coverage
         uses: actions-rs/grcov@v0.1
       - name: Submit coverage
-        uses: codecov/codecov-action@v4-beta
+        uses: codecov/codecov-action@v4
         with:
           fail_ci_if_error: true
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          token: ${{ secrets.CODECOV_TOKEN }}
