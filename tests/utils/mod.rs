@@ -62,9 +62,9 @@ impl TestCase {
         }
     }
 
-    pub fn add_file(&mut self, path: &str, text: &str) -> &mut Self {
+    pub fn add_raw_file(&mut self, path: &str, text: &str) -> &mut Self {
         let path = Path::new(path);
-        let root_path = self.temp_dir.path().join("root");
+        let root_path = self.temp_dir.path();
 
         if let Some(parent) = path.ancestors().nth(1) {
             fs::create_dir_all(root_path.join(parent)).unwrap();
@@ -73,6 +73,12 @@ impl TestCase {
         let mut f = File::create(root_path.join(path)).unwrap();
 
         f.write_all(text.as_bytes()).unwrap();
+
+        self
+    }
+
+    pub fn add_file(&mut self, path: &str, text: &str) -> &mut Self {
+        self.add_raw_file(&("root/".to_owned() + path), text);
 
         self
     }

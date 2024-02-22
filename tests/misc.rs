@@ -73,6 +73,34 @@ mod stdout {
 mod parsing {
     use super::*;
 
+    mod rule_title {
+        use super::*;
+
+        #[test]
+        fn simple() {
+            TestCase::new_for_stdout_tests()
+                .add_raw_file("omnilinter.conf", "[test]\nfiles *.txt\n")
+                .run()
+                .assert_success();
+        }
+
+        #[test]
+        fn unescaped_delimiter() {
+            TestCase::new_for_stdout_tests()
+                .add_raw_file("omnilinter.conf", "[te[]st]\nfiles *.txt\n")
+                .run()
+                .assert_failure();
+        }
+
+        #[test]
+        fn escaped_delimiter() {
+            TestCase::new_for_stdout_tests()
+                .add_raw_file("omnilinter.conf", "[te[\\]st]\nfiles *.txt\n")
+                .run()
+                .assert_success();
+        }
+    }
+
     #[test]
     fn multiple_conditions() {
         TestCase::new_for_stdout_tests()
