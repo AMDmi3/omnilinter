@@ -101,6 +101,18 @@ mod parsing {
         }
     }
 
+    mod r#match {
+        use super::*;
+
+        #[test]
+        fn character_classes() {
+            TestCase::new_for_stdout_tests()
+                .add_rule("match /\\\\s+/")
+                .run()
+                .assert_success();
+        }
+    }
+
     #[test]
     fn multiple_conditions() {
         TestCase::new_for_stdout_tests()
