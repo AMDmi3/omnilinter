@@ -107,6 +107,12 @@ fn parse_rule(
                 }
                 rule.nofiles = Some(parse_globs_condition(item.into_inner().next().unwrap()));
             }
+            Rule::rule_directive_hasfiles => {
+                if rule.hasfiles.is_some() {
+                    panic!("hasfiles condition specified multiple times");
+                }
+                rule.hasfiles = Some(parse_globs_condition(item.into_inner().next().unwrap()));
+            }
             Rule::rule_directive_match => {
                 if rule.match_.is_some() {
                     panic!("match condition specified multiple times");

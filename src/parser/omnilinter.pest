@@ -51,6 +51,7 @@ regexps_list_with_exclusions = { included_regexp ~ included_regexp* ~ excluded_r
 rule_directive_tags = { "tags" ~ tags_list }
 rule_directive_files = { "files" ~ globs_list_with_exclusions }
 rule_directive_nofiles = { "nofiles" ~ globs_list_with_exclusions }
+rule_directive_hasfiles = { "hasfiles" ~ globs_list_with_exclusions }
 rule_directive_match = { "match" ~ regexps_list_with_exclusions }
 rule_directive_nomatch = { "nomatch" ~ regexps_list_with_exclusions }
 
@@ -58,6 +59,7 @@ rule_directive = _{
 	rule_directive_tags |
 	rule_directive_files |
 	rule_directive_nofiles |
+	rule_directive_hasfiles |
 	rule_directive_match |
 	rule_directive_nomatch
 }

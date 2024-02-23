@@ -93,6 +93,21 @@ struct GlobMatchingCache<'a> {
     glob_matches: HashMap<&'a Glob, bool>,
 }
 
+fn check_globs_condition(
+    condition: &GlobCondition,
+    path: &Path,
+    match_options: glob::MatchOptions,
+) -> bool {
+    condition
+        .patterns
+        .iter()
+        .any(|glob| glob.matches_path_with(path, match_options))
+        && !condition
+            .excludes
+            .iter()
+            .any(|glob| glob.matches_path_with(path, match_options))
+}
+
 impl<'a> GlobMatchingCache<'a> {
     pub fn new(path: &'a Path, match_options: glob::MatchOptions) -> Self {
         GlobMatchingCache {
@@ -152,7 +167,7 @@ impl Applier<'_> {
         active_rules.retain(|rule| {
             // NOTE: possible checks to tied to root's file hierarchy (such
             // as running a process on a whole root) may be implemented here
-            if rule.files.is_none() && rule.nofiles.is_none() {
+            if rule.files.is_none() && rule.nofiles.is_none() && rule.hasfiles.is_none() {
                 // rules without any glob matchers always match on the root level
                 self.reporter
                     .report(&root_context.to_location(), &rule.title);
@@ -188,6 +203,20 @@ impl Applier<'_> {
                     .and_then(|condition| Some(matching_cache.check_condition_match(condition)))
                     .unwrap_or(false)
             });
+        });
+
+        // early drop not matching hasfiles rules
+        active_rules.retain(|rule| {
+            rule.hasfiles
+                .as_ref()
+                .and_then(|condition| {
+                    Some(
+                        paths
+                            .iter()
+                            .any(|path| check_globs_condition(condition, path, match_options)),
+                    )
+                })
+                .unwrap_or(true)
         });
 
         paths.iter().for_each(|path| {

@@ -202,3 +202,34 @@ mod match_file_only {
             .assert_matches(vec!["a.txt", "b.txt", "c.txt"]);
     }
 }
+
+mod hasfiles {
+    use super::*;
+
+    #[fixture]
+    fn test_case() -> TestCase {
+        let mut test_case = TestCase::new_for_json_tests();
+        test_case
+            .add_file("a.py", "")
+            .add_file("b.py", "")
+            .add_file("c.py", "");
+        test_case
+    }
+
+    #[rstest]
+    fn matches(mut test_case: TestCase) {
+        // note that we also check that this matches once, not per every file
+        test_case
+            .add_rule("hasfiles *.py")
+            .run()
+            .assert_matches(vec![""]);
+    }
+
+    #[rstest]
+    fn no_matches(mut test_case: TestCase) {
+        test_case
+            .add_rule("hasfiles *.txt")
+            .run()
+            .assert_matches(vec![]);
+    }
+}

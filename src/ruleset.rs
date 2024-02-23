@@ -76,6 +76,7 @@ pub struct Rule {
     pub tags: HashSet<String>,
     pub files: Option<GlobCondition>,
     pub nofiles: Option<GlobCondition>,
+    pub hasfiles: Option<GlobCondition>,
     pub match_: Option<RegexCondition>,
     pub nomatch: Option<RegexCondition>,
 }
