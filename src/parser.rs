@@ -35,6 +35,24 @@ fn parse_globs_condition(pair: pest::iterators::Pair<Rule>) -> GlobCondition {
     cond
 }
 
+fn parse_title(s: &str) -> String {
+    let mut output: String = String::with_capacity(s.len());
+    let mut escaped = false;
+    for c in s.chars() {
+        if escaped {
+            debug_assert!(c == '\\' || c == ']'); //enforced by the parser
+            output.push(c);
+            escaped = false;
+        } else if c == '\\' {
+            escaped = true;
+        } else {
+            output.push(c);
+        }
+    }
+
+    output
+}
+
 fn parse_regex_str(s: &str) -> Regex {
     let quote_char = s.chars().next().unwrap();
 
@@ -86,7 +104,7 @@ fn parse_rule(
                         source_desc, line_number, rule_number
                     );
                 } else {
-                    rule.title = title.to_string();
+                    rule.title = parse_title(title);
                 }
             }
             Rule::rule_directive_tags => {

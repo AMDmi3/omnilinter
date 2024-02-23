@@ -26,7 +26,6 @@ mod parse_rule_title {
     }
 
     #[test]
-    #[ignore] // produces test [ \]rule, needs processing escapes in title
     fn escaped_delimiter() {
         let text = lines![r"[test[ \]rule]", "files *"];
         let config = Config::from_str(text).unwrap();
