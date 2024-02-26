@@ -86,7 +86,7 @@ pub struct Rule {
     pub title: String,
     pub tags: HashSet<String>,
     pub files: Vec<GlobCondition>,
-    pub nofiles: Option<GlobCondition>,
+    pub nofiles: Vec<GlobCondition>,
     pub match_: Option<RegexCondition>,
     pub nomatch: Option<RegexCondition>,
 }

@@ -159,7 +159,7 @@ impl Applier<'_> {
         rules.retain(|rule| {
             // NOTE: possible checks to tied to root's file hierarchy (such
             // as running a process on a whole root) may be implemented here
-            if rule.files.is_empty() && rule.nofiles.is_none() {
+            if rule.files.is_empty() && rule.nofiles.is_empty() {
                 // rules without any glob matchers always match on the root level
                 self.reporter
                     .report(&root_context.to_location(), &rule.title);
@@ -200,14 +200,14 @@ impl Applier<'_> {
                 .iter()
                 .zip(rule_match_statuses.iter_mut())
                 .for_each(|(rule, status)| {
-                    if let Some(condition) = &rule.nofiles {
-                        if !status.nofiles_condition_failed {
-                            status.nofiles_condition_failed =
-                                matching_cache.check_condition_match(condition);
-                        }
-                        if status.nofiles_condition_failed {
-                            return;
-                        }
+                    if !status.nofiles_condition_failed {
+                        status.nofiles_condition_failed = rule
+                            .nofiles
+                            .iter()
+                            .any(|condition| matching_cache.check_condition_match(condition));
+                    }
+                    if status.nofiles_condition_failed {
+                        return;
                     }
 
                     rule.files

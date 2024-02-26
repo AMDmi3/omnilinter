@@ -86,6 +86,19 @@ fn parse_regexes_condition(pair: pest::iterators::Pair<Rule>) -> RegexCondition 
     cond
 }
 
+fn update_reporting_target(conditions: &mut Vec<GlobCondition>, last_is_target: bool) {
+    conditions
+        .iter_mut()
+        .for_each(|condition| condition.is_reporting_target = false);
+    if last_is_target {
+        conditions
+            .iter_mut()
+            .last()
+            .iter_mut()
+            .for_each(|condition| condition.is_reporting_target = true);
+    }
+}
+
 fn parse_rule(
     pair: pest::iterators::Pair<Rule>,
     rule_number: usize,
@@ -116,27 +129,14 @@ fn parse_rule(
             Rule::rule_directive_files => {
                 rule.files
                     .push(parse_globs_condition(item.into_inner().next().unwrap()));
-                rule.files
-                    .iter_mut()
-                    .for_each(|condition| condition.is_reporting_target = false);
-                if let Some(condition) = rule.files.iter_mut().last() {
-                    condition.is_reporting_target = true;
-                }
-                if let Some(condition) = &mut rule.nofiles {
-                    condition.is_reporting_target = false;
-                }
+                update_reporting_target(&mut rule.files, true);
+                update_reporting_target(&mut rule.nofiles, false);
             }
             Rule::rule_directive_nofiles => {
-                if rule.nofiles.is_some() {
-                    panic!("nofiles condition specified multiple times");
-                }
-                rule.nofiles = Some(parse_globs_condition(item.into_inner().next().unwrap()));
-                rule.files
-                    .iter_mut()
-                    .for_each(|condition| condition.is_reporting_target = false);
-                if let Some(nofiles) = &mut rule.nofiles {
-                    nofiles.is_reporting_target = true;
-                }
+                rule.nofiles
+                    .push(parse_globs_condition(item.into_inner().next().unwrap()));
+                update_reporting_target(&mut rule.nofiles, true);
+                update_reporting_target(&mut rule.files, false);
             }
             Rule::rule_directive_match => {
                 if rule.match_.is_some() {
