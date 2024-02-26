@@ -142,6 +142,16 @@ fn files_before_nofiles() {
 }
 
 #[test]
+fn files_after_hasfiles() {
+    TestCase::new_for_json_tests()
+        .add_file("a.py", "")
+        .add_file("b.py", "")
+        .add_rule("hasfiles a.py\nfiles b.py\n")
+        .run()
+        .assert_matches(vec!["b.py"]);
+}
+
+#[test]
 fn files_with_content_before_nofiles() {
     TestCase::new_for_json_tests()
         .add_file("a.py", "a")
