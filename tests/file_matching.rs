@@ -142,16 +142,6 @@ fn files_before_nofiles() {
 }
 
 #[test]
-fn files_after_hasfiles() {
-    TestCase::new_for_json_tests()
-        .add_file("a.py", "")
-        .add_file("b.py", "")
-        .add_rule("hasfiles a.py\nfiles b.py\n")
-        .run()
-        .assert_matches(vec!["b.py"]);
-}
-
-#[test]
 fn files_with_content_before_nofiles() {
     TestCase::new_for_json_tests()
         .add_file("a.py", "a")
@@ -159,6 +149,26 @@ fn files_with_content_before_nofiles() {
         .add_rule("files a.py\nmatch /a/\nnofiles b.py\n")
         .run()
         .assert_matches(vec![]);
+}
+
+#[test]
+fn files_after_files_order_a() {
+    TestCase::new_for_json_tests()
+        .add_file("a.py", "")
+        .add_file("b.py", "")
+        .add_rule("files a.py\nfiles b.py\n")
+        .run()
+        .assert_matches(vec!["b.py"]);
+}
+
+#[test]
+fn files_after_files_order_b() {
+    TestCase::new_for_json_tests()
+        .add_file("b.py", "")
+        .add_file("a.py", "")
+        .add_rule("files a.py\nfiles b.py\n")
+        .run()
+        .assert_matches(vec!["b.py"]);
 }
 
 mod nofiles_multiple_globs {
@@ -210,36 +220,5 @@ mod match_file_only {
             .add_rule("files *.txt")
             .run()
             .assert_matches(vec!["a.txt", "b.txt", "c.txt"]);
-    }
-}
-
-mod hasfiles {
-    use super::*;
-
-    #[fixture]
-    fn test_case() -> TestCase {
-        let mut test_case = TestCase::new_for_json_tests();
-        test_case
-            .add_file("a.py", "")
-            .add_file("b.py", "")
-            .add_file("c.py", "");
-        test_case
-    }
-
-    #[rstest]
-    fn matches(mut test_case: TestCase) {
-        // note that we also check that this matches once, not per every file
-        test_case
-            .add_rule("hasfiles *.py")
-            .run()
-            .assert_matches(vec![""]);
-    }
-
-    #[rstest]
-    fn no_matches(mut test_case: TestCase) {
-        test_case
-            .add_rule("hasfiles *.txt")
-            .run()
-            .assert_matches(vec![]);
     }
 }

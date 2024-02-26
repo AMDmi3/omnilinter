@@ -114,22 +114,29 @@ fn parse_rule(
                 rule.tags = parse_tags(item.into_inner().next().unwrap())
             }
             Rule::rule_directive_files => {
-                if rule.files.is_some() {
-                    panic!("files condition specified multiple times");
+                rule.files
+                    .push(parse_globs_condition(item.into_inner().next().unwrap()));
+                rule.files
+                    .iter_mut()
+                    .for_each(|condition| condition.is_reporting_target = false);
+                if let Some(condition) = rule.files.iter_mut().last() {
+                    condition.is_reporting_target = true;
                 }
-                rule.files = Some(parse_globs_condition(item.into_inner().next().unwrap()));
+                if let Some(condition) = &mut rule.nofiles {
+                    condition.is_reporting_target = false;
+                }
             }
             Rule::rule_directive_nofiles => {
                 if rule.nofiles.is_some() {
                     panic!("nofiles condition specified multiple times");
                 }
                 rule.nofiles = Some(parse_globs_condition(item.into_inner().next().unwrap()));
-            }
-            Rule::rule_directive_hasfiles => {
-                if rule.hasfiles.is_some() {
-                    panic!("hasfiles condition specified multiple times");
+                rule.files
+                    .iter_mut()
+                    .for_each(|condition| condition.is_reporting_target = false);
+                if let Some(nofiles) = &mut rule.nofiles {
+                    nofiles.is_reporting_target = true;
                 }
-                rule.hasfiles = Some(parse_globs_condition(item.into_inner().next().unwrap()));
             }
             Rule::rule_directive_match => {
                 if rule.match_.is_some() {
@@ -145,6 +152,17 @@ fn parse_rule(
             }
             _ => unreachable!("unexpected parser rule type in parse_rule {:#?}", item),
         }
+    }
+
+    if rule.match_.is_some() || rule.nomatch.is_some() {
+        if rule.files.is_empty() {
+            panic!("match and nomatch conditions require files condition to be specified");
+        }
+        rule.files
+            .iter_mut()
+            .last()
+            .iter_mut()
+            .for_each(|condition| condition.matches_content = true);
     }
 
     rule

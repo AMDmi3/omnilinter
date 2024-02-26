@@ -101,8 +101,22 @@ mod parse_regexp {
 }
 
 #[test]
+fn multiple_files() {
+    let text = lines!["[]", "files *", "files *"];
+    let config = Config::from_str(text).unwrap();
+    assert_eq!(config.ruleset.rules[0].files.len(), 2);
+}
+
+#[test]
 #[should_panic]
 fn duplicate_conditions() {
-    let text = lines!["[]", "files *", "files *"];
+    let text = lines!["[]", "nofiles *", "nofiles *"];
+    Config::from_str(text).unwrap();
+}
+
+#[test]
+#[should_panic]
+fn match_without_files() {
+    let text = lines!["[]", "match //"];
     Config::from_str(text).unwrap();
 }

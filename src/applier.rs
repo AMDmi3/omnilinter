@@ -93,21 +93,6 @@ struct GlobMatchingCache<'a> {
     glob_matches: HashMap<&'a Glob, bool>,
 }
 
-fn check_globs_condition(
-    condition: &GlobCondition,
-    path: &Path,
-    match_options: glob::MatchOptions,
-) -> bool {
-    condition
-        .patterns
-        .iter()
-        .any(|glob| glob.matches_path_with(path, match_options))
-        && !condition
-            .excludes
-            .iter()
-            .any(|glob| glob.matches_path_with(path, match_options))
-}
-
 impl<'a> GlobMatchingCache<'a> {
     pub fn new(path: &'a Path, match_options: glob::MatchOptions) -> Self {
         GlobMatchingCache {
@@ -149,9 +134,9 @@ impl<'a> GlobMatchingCache<'a> {
 
 #[derive(Default, Debug)]
 struct RuleGlobMatchStatus<'a> {
-    pub nofiles_failed: bool,
-    pub hasfiles_passed: bool,
-    pub files_matched: Vec<&'a Path>,
+    pub nofiles_condition_failed: bool,
+    pub files_conditions_passed: Vec<bool>,
+    pub matched_paths: Vec<&'a Path>,
 }
 
 impl Applier<'_> {
@@ -174,7 +159,7 @@ impl Applier<'_> {
         rules.retain(|rule| {
             // NOTE: possible checks to tied to root's file hierarchy (such
             // as running a process on a whole root) may be implemented here
-            if rule.files.is_none() && rule.nofiles.is_none() && rule.hasfiles.is_none() {
+            if rule.files.is_empty() && rule.nofiles.is_none() {
                 // rules without any glob matchers always match on the root level
                 self.reporter
                     .report(&root_context.to_location(), &rule.title);
@@ -183,8 +168,14 @@ impl Applier<'_> {
             true
         });
 
-        let mut rule_match_statuses: Vec<RuleGlobMatchStatus> = Vec::with_capacity(rules.len());
-        rule_match_statuses.resize_with(rules.len(), Default::default);
+        let mut rule_match_statuses: Vec<_> = rules
+            .iter()
+            .map(|rule| RuleGlobMatchStatus {
+                nofiles_condition_failed: false,
+                files_conditions_passed: vec![false; rule.files.len()],
+                matched_paths: vec![],
+            })
+            .collect();
 
         let mut match_options = glob::MatchOptions::new();
         match_options.require_literal_separator = true;
@@ -210,25 +201,28 @@ impl Applier<'_> {
                 .zip(rule_match_statuses.iter_mut())
                 .for_each(|(rule, status)| {
                     if let Some(condition) = &rule.nofiles {
-                        if status.nofiles_failed {
-                            return;
-                        } else {
-                            status.nofiles_failed = matching_cache.check_condition_match(condition);
-                        }
-                    }
-
-                    if let Some(condition) = &rule.hasfiles {
-                        if !status.hasfiles_passed {
-                            status.hasfiles_passed =
+                        if !status.nofiles_condition_failed {
+                            status.nofiles_condition_failed =
                                 matching_cache.check_condition_match(condition);
                         }
-                    }
-
-                    if let Some(condition) = &rule.files {
-                        if matching_cache.check_condition_match(condition) {
-                            status.files_matched.push(&path);
+                        if status.nofiles_condition_failed {
+                            return;
                         }
                     }
+
+                    rule.files
+                        .iter()
+                        .zip(status.files_conditions_passed.iter_mut())
+                        .for_each(|(condition, is_matched)| {
+                            if condition.is_reporting_target {
+                                if matching_cache.check_condition_match(condition) {
+                                    *is_matched = true;
+                                    status.matched_paths.push(&path);
+                                }
+                            } else if !*is_matched {
+                                *is_matched = matching_cache.check_condition_match(condition);
+                            }
+                        });
                 });
         });
 
@@ -238,23 +232,20 @@ impl Applier<'_> {
             .iter()
             .zip(rule_match_statuses.iter_mut())
             .for_each(|(rule, status)| {
-                if rule.nofiles.is_some() && status.nofiles_failed {
+                if status.nofiles_condition_failed {
                     return;
                 }
-                if rule.hasfiles.is_some() && !status.hasfiles_passed {
-                    return;
-                }
-                if rule.files.is_some() && status.files_matched.is_empty() {
+                if !status.files_conditions_passed.iter().all(|passed| *passed) {
                     return;
                 }
 
-                if status.files_matched.is_empty() {
+                if status.matched_paths.is_empty() {
                     self.reporter
                         .report(&root_context.to_location(), &rule.title);
                     return;
                 }
 
-                for path in status.files_matched.iter() {
+                for path in status.matched_paths.iter() {
                     if rule.match_.is_none() && rule.nomatch.is_none() {
                         self.reporter
                             .report(&root_context.to_location_with_file(&path), &rule.title);

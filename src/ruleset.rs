@@ -71,6 +71,8 @@ impl Glob {
 pub struct GlobCondition {
     pub patterns: Vec<Glob>,
     pub excludes: Vec<Glob>,
+    pub matches_content: bool,
+    pub is_reporting_target: bool,
 }
 
 #[derive(Default, Debug)]
@@ -83,9 +85,8 @@ pub struct RegexCondition {
 pub struct Rule {
     pub title: String,
     pub tags: HashSet<String>,
-    pub files: Option<GlobCondition>,
+    pub files: Vec<GlobCondition>,
     pub nofiles: Option<GlobCondition>,
-    pub hasfiles: Option<GlobCondition>,
     pub match_: Option<RegexCondition>,
     pub nomatch: Option<RegexCondition>,
 }
