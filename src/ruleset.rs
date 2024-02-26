@@ -6,7 +6,7 @@ use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
 use std::path::Path;
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(PartialEq, Eq, Hash, Debug)]
 enum GlobScope {
     Filenames,
     Paths,
@@ -31,6 +31,15 @@ impl PartialEq for Glob {
 }
 
 impl Eq for Glob {}
+
+impl std::fmt::Debug for Glob {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Glob")
+            .field("pattern", &self.pattern.as_str())
+            .field("scope", &self.scope)
+            .finish()
+    }
+}
 
 impl Glob {
     pub fn new(pattern: &str) -> Result<Self, glob::PatternError> {
@@ -58,7 +67,7 @@ impl Glob {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct GlobCondition {
     pub patterns: Vec<Glob>,
     pub excludes: Vec<Glob>,
@@ -70,7 +79,7 @@ pub struct RegexCondition {
     pub excludes: Vec<Regex>,
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Rule {
     pub title: String,
     pub tags: HashSet<String>,
