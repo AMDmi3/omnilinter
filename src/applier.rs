@@ -147,11 +147,18 @@ impl<'a> GlobMatchingCache<'a> {
     }
 }
 
+#[derive(Default, Debug)]
+struct RuleGlobMatchStatus<'a> {
+    pub nofiles_failed: bool,
+    pub hasfiles_passed: bool,
+    pub files_matched: Vec<&'a Path>,
+}
+
 impl Applier<'_> {
     pub fn apply_to_root(&mut self, root: &Path) {
         let root_context = &RootMatchContext { root };
 
-        let mut active_rules: Vec<_> = self
+        let mut rules: Vec<_> = self
             .ruleset
             .rules
             .iter()
@@ -164,7 +171,7 @@ impl Applier<'_> {
             })
             .collect();
 
-        active_rules.retain(|rule| {
+        rules.retain(|rule| {
             // NOTE: possible checks to tied to root's file hierarchy (such
             // as running a process on a whole root) may be implemented here
             if rule.files.is_none() && rule.nofiles.is_none() && rule.hasfiles.is_none() {
@@ -175,6 +182,9 @@ impl Applier<'_> {
             }
             true
         });
+
+        let mut rule_match_statuses: Vec<RuleGlobMatchStatus> = Vec::with_capacity(rules.len());
+        rule_match_statuses.resize_with(rules.len(), Default::default);
 
         let mut match_options = glob::MatchOptions::new();
         match_options.require_literal_separator = true;
@@ -192,67 +202,74 @@ impl Applier<'_> {
             })
             .collect::<Vec<_>>();
 
-        // early drop not matching nofiles rules
         paths.iter().for_each(|path| {
             let mut matching_cache = GlobMatchingCache::new(&path, match_options);
 
-            active_rules.retain(|rule| {
-                !rule
-                    .nofiles
-                    .as_ref()
-                    .and_then(|condition| Some(matching_cache.check_condition_match(condition)))
-                    .unwrap_or(false)
-            });
-        });
-
-        // early drop not matching hasfiles rules
-        active_rules.retain(|rule| {
-            rule.hasfiles
-                .as_ref()
-                .and_then(|condition| {
-                    Some(
-                        paths
-                            .iter()
-                            .any(|path| check_globs_condition(condition, path, match_options)),
-                    )
-                })
-                .unwrap_or(true)
-        });
-
-        paths.iter().for_each(|path| {
-            let mut matching_cache = GlobMatchingCache::new(&path, match_options);
-
-            let mut content_rules = Vec::<&Rule>::with_capacity(active_rules.len());
-
-            active_rules.retain(|rule| {
-                if let Some(condition) = &rule.files {
-                    // files rules
-                    if matching_cache.check_condition_match(condition) {
-                        if rule.match_.is_none() && rule.nomatch.is_none() {
-                            // rules without content conditions match here
-                            self.reporter
-                                .report(&root_context.to_location_with_file(&path), &rule.title);
+            rules
+                .iter()
+                .zip(rule_match_statuses.iter_mut())
+                .for_each(|(rule, status)| {
+                    if let Some(condition) = &rule.nofiles {
+                        if status.nofiles_failed {
+                            return;
                         } else {
-                            // rules with content conditions are batched for content checks
-                            content_rules.push(&rule);
+                            status.nofiles_failed = matching_cache.check_condition_match(condition);
                         }
                     }
-                } else {
-                    // nofiles-only rules
+
+                    if let Some(condition) = &rule.hasfiles {
+                        if !status.hasfiles_passed {
+                            status.hasfiles_passed =
+                                matching_cache.check_condition_match(condition);
+                        }
+                    }
+
+                    if let Some(condition) = &rule.files {
+                        if matching_cache.check_condition_match(condition) {
+                            status.files_matched.push(&path);
+                        }
+                    }
+                });
+        });
+
+        let mut content_rules_by_path: HashMap<&Path, Vec<&Rule>> = HashMap::new();
+
+        rules
+            .iter()
+            .zip(rule_match_statuses.iter_mut())
+            .for_each(|(rule, status)| {
+                if rule.nofiles.is_some() && status.nofiles_failed {
+                    return;
+                }
+                if rule.hasfiles.is_some() && !status.hasfiles_passed {
+                    return;
+                }
+                if rule.files.is_some() && status.files_matched.is_empty() {
+                    return;
+                }
+
+                if status.files_matched.is_empty() {
                     self.reporter
                         .report(&root_context.to_location(), &rule.title);
-                    return false;
+                    return;
                 }
-                true
+
+                for path in status.files_matched.iter() {
+                    if rule.match_.is_none() && rule.nomatch.is_none() {
+                        self.reporter
+                            .report(&root_context.to_location_with_file(&path), &rule.title);
+                    } else {
+                        content_rules_by_path.entry(path).or_default().push(&rule);
+                    }
+                }
             });
 
-            if !content_rules.is_empty() {
-                if let Err(err) =
-                    apply_content_rules(&root_context.to_file(&path), content_rules, self.reporter)
-                {
-                    eprintln!("failed to process {}: {}", path.display(), err);
-                }
+        for (path, rules) in content_rules_by_path.into_iter() {
+            if let Err(err) =
+                apply_content_rules(&root_context.to_file(&path), rules, self.reporter)
+            {
+                eprintln!("failed to process {}: {}", path.display(), err);
             }
-        });
+        }
     }
 }
