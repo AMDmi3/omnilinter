@@ -7,7 +7,8 @@ use crate::reporter::Reporter;
 use crate::ruleset::{Glob, GlobCondition, RegexCondition, Rule, Ruleset};
 use context::*;
 use std::collections::{HashMap, HashSet};
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::rc::Rc;
 use walkdir::WalkDir;
 
 const IGNORE_MARKER: &str = "omnilinter: ignore";
@@ -133,10 +134,10 @@ impl<'a> GlobMatchingCache<'a> {
 }
 
 #[derive(Default, Debug)]
-struct RuleGlobMatchStatus<'a> {
+struct RuleGlobMatchStatus {
     pub nofiles_condition_failed: bool,
     pub files_conditions_passed: Vec<bool>,
-    pub matched_paths: Vec<&'a Path>,
+    pub matched_paths: Vec<Rc<PathBuf>>,
 }
 
 impl Applier<'_> {
@@ -180,53 +181,53 @@ impl Applier<'_> {
         let mut match_options = glob::MatchOptions::new();
         match_options.require_literal_separator = true;
 
-        let paths = WalkDir::new(root_context.root)
+        WalkDir::new(root_context.root)
             .sort_by_file_name()
             .into_iter()
             .filter_map(|e| e.ok())
             .filter(|e| e.file_type().is_file())
             .map(|e| {
-                e.into_path()
-                    .strip_prefix(root_context.root)
-                    .unwrap()
-                    .to_path_buf()
+                Rc::new(
+                    e.into_path()
+                        .strip_prefix(root_context.root)
+                        .unwrap()
+                        .to_path_buf(),
+                )
             })
-            .collect::<Vec<_>>();
+            .for_each(|path| {
+                let mut matching_cache = GlobMatchingCache::new(&path, match_options);
 
-        paths.iter().for_each(|path| {
-            let mut matching_cache = GlobMatchingCache::new(&path, match_options);
+                rules
+                    .iter()
+                    .zip(rule_match_statuses.iter_mut())
+                    .for_each(|(rule, status)| {
+                        if !status.nofiles_condition_failed {
+                            status.nofiles_condition_failed = rule
+                                .nofiles
+                                .iter()
+                                .any(|condition| matching_cache.check_condition_match(condition));
+                        }
+                        if status.nofiles_condition_failed {
+                            return;
+                        }
 
-            rules
-                .iter()
-                .zip(rule_match_statuses.iter_mut())
-                .for_each(|(rule, status)| {
-                    if !status.nofiles_condition_failed {
-                        status.nofiles_condition_failed = rule
-                            .nofiles
+                        rule.files
                             .iter()
-                            .any(|condition| matching_cache.check_condition_match(condition));
-                    }
-                    if status.nofiles_condition_failed {
-                        return;
-                    }
-
-                    rule.files
-                        .iter()
-                        .zip(status.files_conditions_passed.iter_mut())
-                        .for_each(|(condition, is_matched)| {
-                            if condition.is_reporting_target {
-                                if matching_cache.check_condition_match(condition) {
-                                    *is_matched = true;
-                                    status.matched_paths.push(&path);
+                            .zip(status.files_conditions_passed.iter_mut())
+                            .for_each(|(condition, is_matched)| {
+                                if condition.is_reporting_target {
+                                    if matching_cache.check_condition_match(condition) {
+                                        *is_matched = true;
+                                        status.matched_paths.push(path.clone());
+                                    }
+                                } else if !*is_matched {
+                                    *is_matched = matching_cache.check_condition_match(condition);
                                 }
-                            } else if !*is_matched {
-                                *is_matched = matching_cache.check_condition_match(condition);
-                            }
-                        });
-                });
-        });
+                            });
+                    });
+            });
 
-        let mut content_rules_by_path: HashMap<&Path, Vec<&Rule>> = HashMap::new();
+        let mut content_rules_by_path: HashMap<Rc<PathBuf>, Vec<&Rule>> = HashMap::new();
 
         rules
             .iter()
@@ -250,7 +251,10 @@ impl Applier<'_> {
                         self.reporter
                             .report(&root_context.to_location_with_file(&path), &rule.title);
                     } else {
-                        content_rules_by_path.entry(path).or_default().push(&rule);
+                        content_rules_by_path
+                            .entry(path.clone())
+                            .or_default()
+                            .push(&rule);
                     }
                 }
             });
