@@ -121,12 +121,7 @@ fn parse_rule(
                     rule.title = parse_title(title);
                 }
             }
-            Rule::rule_directive_tags => {
-                if !rule.tags.is_empty() {
-                    panic!("tags specified multiple times");
-                }
-                rule.tags = parse_tags(item.into_inner().next().unwrap())
-            }
+            Rule::rule_directive_tags => rule.tags = parse_tags(item.into_inner().next().unwrap()),
             Rule::rule_directive_files => {
                 rule.files
                     .push(parse_globs_condition(item.into_inner().next().unwrap()));
