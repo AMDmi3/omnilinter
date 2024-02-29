@@ -69,3 +69,12 @@ mod stdout {
             .assert_stdout_contains("a.py:2");
     }
 }
+
+#[test]
+fn conditionless_rule() {
+    TestCase::new_for_json_tests()
+        .add_file("a.py", "")
+        .add_rule("")
+        .run()
+        .assert_matches(vec![""]);
+}
