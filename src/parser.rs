@@ -22,7 +22,10 @@ fn parse_tags(pair: pest::iterators::Pair<Rule>) -> HashSet<String> {
         .collect()
 }
 
-fn parse_globs_condition(pair: pest::iterators::Pair<Rule>) -> GlobCondition {
+fn parse_globs_condition(
+    pair: pest::iterators::Pair<Rule>,
+    condition_number: usize,
+) -> GlobCondition {
     let mut cond: GlobCondition = Default::default();
     for item in pair.into_inner() {
         let item = item.as_str();
@@ -32,6 +35,7 @@ fn parse_globs_condition(pair: pest::iterators::Pair<Rule>) -> GlobCondition {
             cond.patterns.push(Glob::new(item).unwrap());
         }
     }
+    cond.number = condition_number;
     cond
 }
 
@@ -74,7 +78,10 @@ fn parse_regex_str(s: &str) -> Regex {
     Regex::new(&output).unwrap()
 }
 
-fn parse_regexes_condition(pair: pest::iterators::Pair<Rule>) -> RegexCondition {
+fn parse_regexes_condition(
+    pair: pest::iterators::Pair<Rule>,
+    condition_number: usize,
+) -> RegexCondition {
     let mut cond: RegexCondition = Default::default();
     for item in pair.into_inner() {
         let item = item.as_str();
@@ -84,20 +91,8 @@ fn parse_regexes_condition(pair: pest::iterators::Pair<Rule>) -> RegexCondition 
             cond.patterns.push(parse_regex_str(item));
         }
     }
+    cond.number = condition_number;
     cond
-}
-
-fn update_reporting_target(conditions: &mut Vec<GlobCondition>, last_is_target: bool) {
-    conditions
-        .iter_mut()
-        .for_each(|condition| condition.is_reporting_target = false);
-    if last_is_target {
-        conditions
-            .iter_mut()
-            .last()
-            .iter_mut()
-            .for_each(|condition| condition.is_reporting_target = true);
-    }
 }
 
 fn parse_rule(
@@ -106,6 +101,8 @@ fn parse_rule(
     source_desc: &str,
 ) -> RulesetRule {
     let mut rule: RulesetRule = Default::default();
+    let mut conditions_count: usize = 0;
+    let mut max_glob_condition_number: usize = 0;
 
     for item in pair.into_inner() {
         match item.as_rule() {
@@ -115,7 +112,9 @@ fn parse_rule(
                 if title.is_empty() {
                     rule.title = format!(
                         "rule from {}:{} (#{})",
-                        source_desc, line_number, rule_number
+                        source_desc,
+                        line_number,
+                        rule_number + 1
                     );
                 } else {
                     rule.title = parse_title(title);
@@ -123,28 +122,40 @@ fn parse_rule(
             }
             Rule::rule_directive_tags => rule.tags = parse_tags(item.into_inner().next().unwrap()),
             Rule::rule_directive_files => {
-                rule.files
-                    .push(parse_globs_condition(item.into_inner().next().unwrap()));
-                update_reporting_target(&mut rule.files, true);
-                update_reporting_target(&mut rule.nofiles, false);
+                rule.files.push(parse_globs_condition(
+                    item.into_inner().next().unwrap(),
+                    conditions_count,
+                ));
+                max_glob_condition_number = conditions_count;
+                conditions_count += 1;
             }
             Rule::rule_directive_nofiles => {
-                rule.nofiles
-                    .push(parse_globs_condition(item.into_inner().next().unwrap()));
-                update_reporting_target(&mut rule.nofiles, true);
-                update_reporting_target(&mut rule.files, false);
+                rule.nofiles.push(parse_globs_condition(
+                    item.into_inner().next().unwrap(),
+                    conditions_count,
+                ));
+                max_glob_condition_number = conditions_count;
+                conditions_count += 1;
             }
             Rule::rule_directive_match => {
                 if rule.match_.is_some() {
                     panic!("match condition specified multiple times");
                 }
-                rule.match_ = Some(parse_regexes_condition(item.into_inner().next().unwrap()));
+                rule.match_ = Some(parse_regexes_condition(
+                    item.into_inner().next().unwrap(),
+                    conditions_count,
+                ));
+                conditions_count += 1;
             }
             Rule::rule_directive_nomatch => {
                 if rule.nomatch.is_some() {
                     panic!("nomatch condition specified multiple times");
                 }
-                rule.nomatch = Some(parse_regexes_condition(item.into_inner().next().unwrap()));
+                rule.nomatch = Some(parse_regexes_condition(
+                    item.into_inner().next().unwrap(),
+                    conditions_count,
+                ));
+                conditions_count += 1;
             }
             _ => unreachable!("unexpected parser rule type in parse_rule {:#?}", item),
         }
@@ -160,6 +171,12 @@ fn parse_rule(
             .iter_mut()
             .for_each(|condition| condition.matches_content = true);
     }
+    rule.files.iter_mut().for_each(|condition| {
+        condition.is_reporting_target = condition.number == max_glob_condition_number
+    });
+    rule.nofiles.iter_mut().for_each(|condition| {
+        condition.is_reporting_target = condition.number == max_glob_condition_number
+    });
 
     rule
 }
@@ -178,7 +195,6 @@ impl Config {
             .next()
             .unwrap();
 
-        let mut rule_number: usize = 0;
         for item in file.into_inner() {
             match item.as_rule() {
                 Rule::config_directive_root => {
@@ -191,11 +207,11 @@ impl Config {
                     config.roots.append(&mut root_paths);
                 }
                 Rule::rule => {
-                    rule_number += 1;
-                    config
-                        .ruleset
-                        .rules
-                        .push(parse_rule(item, rule_number, source_desc));
+                    config.ruleset.rules.push(parse_rule(
+                        item,
+                        config.ruleset.rules.len(),
+                        source_desc,
+                    ));
                 }
                 Rule::EOI => (),
                 _ => unreachable!("unexpected parser rule type in from_str {:#?}", item),

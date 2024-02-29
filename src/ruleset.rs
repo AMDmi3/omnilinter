@@ -69,6 +69,7 @@ impl Glob {
 
 #[derive(Default, Debug)]
 pub struct GlobCondition {
+    pub number: usize,
     pub patterns: Vec<Glob>,
     pub excludes: Vec<Glob>,
     pub matches_content: bool,
@@ -77,12 +78,15 @@ pub struct GlobCondition {
 
 #[derive(Default, Debug)]
 pub struct RegexCondition {
+    pub number: usize,
     pub patterns: Vec<Regex>,
     pub excludes: Vec<Regex>,
+    pub is_reporting_target: bool,
 }
 
 #[derive(Default, Debug)]
 pub struct Rule {
+    pub number: usize,
     pub title: String,
     pub tags: HashSet<String>,
     pub files: Vec<GlobCondition>,
@@ -91,7 +95,52 @@ pub struct Rule {
     pub nomatch: Option<RegexCondition>,
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Ruleset {
     pub rules: Vec<Rule>,
+}
+
+#[derive(Debug)]
+pub struct CompiledRuleset {
+    pub rules: Vec<Rule>,
+    pub conditions_count: usize,
+}
+
+impl Ruleset {
+    pub fn compile(self) -> CompiledRuleset {
+        let mut rules = self.rules;
+
+        let mut total_conditions_count = 0;
+
+        rules
+            .iter_mut()
+            .enumerate()
+            .for_each(|(rule_number, rule)| {
+                rule.number = rule_number;
+                let rule_conditions_count = rule.files.iter().count()
+                    + rule.nofiles.iter().count()
+                    + rule.match_.iter().count()
+                    + rule.nomatch.iter().count();
+
+                rule.files.iter_mut().for_each(|condition| {
+                    condition.number += total_conditions_count;
+                });
+                rule.nofiles.iter_mut().for_each(|condition| {
+                    condition.number += total_conditions_count;
+                });
+                rule.match_.iter_mut().for_each(|condition| {
+                    condition.number += total_conditions_count;
+                });
+                rule.nomatch.iter_mut().for_each(|condition| {
+                    condition.number += total_conditions_count;
+                });
+
+                total_conditions_count += rule_conditions_count;
+            });
+
+        CompiledRuleset {
+            rules,
+            conditions_count: total_conditions_count,
+        }
+    }
 }

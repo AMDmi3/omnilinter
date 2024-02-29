@@ -91,8 +91,10 @@ fn main() {
         args.roots
     };
 
+    let ruleset = config.ruleset.compile();
+
     let mut applier = Applier::new(
-        &config.ruleset,
+        &ruleset,
         reporter.as_mut(),
         ApplierOptions {
             required_tags: args.required_tags.into_iter().collect(),

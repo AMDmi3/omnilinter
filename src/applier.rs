@@ -4,7 +4,7 @@
 mod context;
 
 use crate::reporter::Reporter;
-use crate::ruleset::{Glob, GlobCondition, RegexCondition, Rule, Ruleset};
+use crate::ruleset::{CompiledRuleset, Glob, GlobCondition, RegexCondition, Rule};
 use context::*;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -19,14 +19,14 @@ pub struct ApplierOptions {
 }
 
 pub struct Applier<'a> {
-    ruleset: &'a Ruleset,
+    ruleset: &'a CompiledRuleset,
     reporter: &'a mut dyn Reporter,
     options: ApplierOptions,
 }
 
 impl Applier<'_> {
     pub fn new<'a>(
-        ruleset: &'a Ruleset,
+        ruleset: &'a CompiledRuleset,
         reporter: &'a mut dyn Reporter,
         options: ApplierOptions,
     ) -> Applier<'a> {
