@@ -6,7 +6,8 @@ rule_title_char = {
 	| "\\" ~ ("\\" | "]")
 }
 rule_title_inner = @{ rule_title_char* }
-rule_title = ${ "[" ~ rule_title_inner ~ "]" }
+rule_title_outer = ${ "[" ~ rule_title_inner ~ "]" }
+rule_title = { rule_title_outer ~ NEWLINE+ }
 
 tag_char = {
 	!("\n" | "\r" | "," | " " | "\t") ~ ANY
@@ -48,33 +49,32 @@ included_regexp = @{ !("!") ~ simple_regexp }
 excluded_regexp = @{ "!" ~ simple_regexp }
 regexps_list_with_exclusions = { included_regexp ~ included_regexp* ~ excluded_regexp* }
 
-rule_directive_tags = { "tags" ~ tags_list }
-rule_directive_files = { "files" ~ globs_list_with_exclusions }
-rule_directive_nofiles = { "nofiles" ~ globs_list_with_exclusions }
-rule_directive_hasfiles = { "hasfiles" ~ globs_list_with_exclusions }
-rule_directive_match = { "match" ~ regexps_list_with_exclusions }
-rule_directive_nomatch = { "nomatch" ~ regexps_list_with_exclusions }
+rule_directive_tags = { "tags" ~ tags_list ~ NEWLINE+ }
+
+rule_directive_files = {"files" ~ globs_list_with_exclusions ~ NEWLINE+ }
+rule_directive_nofiles = { "nofiles" ~ globs_list_with_exclusions ~ NEWLINE+ }
+rule_directive_match = { "match" ~ regexps_list_with_exclusions ~ NEWLINE+ }
+rule_directive_nomatch = { "nomatch" ~ regexps_list_with_exclusions ~ NEWLINE+ }
 
 rule_directive = _{
-	rule_directive_tags |
 	rule_directive_files |
 	rule_directive_nofiles |
-	rule_directive_hasfiles |
 	rule_directive_match |
 	rule_directive_nomatch
 }
 
 rule = {
-	rule_title ~ NEWLINE ~
-	(rule_directive? ~ NEWLINE)*
+	rule_title ~
+	rule_directive_tags? ~
+	rule_directive*
 }
 
-config_directive_root = { "root" ~ simple_glob }
+config_directive_root = { "root" ~ simple_glob ~ NEWLINE+ }
 config_directive = _{ config_directive_root }
 
 file = {
-    SOI ~
-	(config_directive? ~ NEWLINE)* ~
+    SOI ~ NEWLINE* ~
+	config_directive* ~
 	rule* ~
     EOI
 }

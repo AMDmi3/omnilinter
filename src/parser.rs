@@ -36,6 +36,7 @@ fn parse_globs_condition(pair: pest::iterators::Pair<Rule>) -> GlobCondition {
 }
 
 fn parse_title(s: &str) -> String {
+    let s = &s[1..s.len() - 1];
     let mut output: String = String::with_capacity(s.len());
     let mut escaped = false;
     for c in s.chars() {
