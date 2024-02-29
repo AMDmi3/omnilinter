@@ -127,3 +127,25 @@ fn match_without_files() {
     let text = lines!["[]", "match //"];
     Config::from_str(text).unwrap();
 }
+
+#[test]
+fn empty_lines() {
+    let text = lines![
+        "",
+        "root /nonexistent",
+        "",
+        "[]",
+        "",
+        "tags foo",
+        "",
+        "nofiles *",
+        "",
+        "files *",
+        "",
+        "nomatch /foo/",
+        "",
+        "match /foo/",
+        ""
+    ];
+    Config::from_str(text).unwrap();
+}
