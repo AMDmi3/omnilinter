@@ -1,11 +1,9 @@
 // SPDX-FileCopyrightText: Copyright 2024 Dmitry Marakasov <amdmi3@amdmi3.ru>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-mod context;
-
+use crate::location::MatchLocation;
 use crate::reporter::Reporter;
 use crate::ruleset::{CompiledRuleset, Glob, GlobCondition, RegexCondition, Rule};
-use context::*;
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
@@ -53,11 +51,12 @@ struct RuleRegexpMatchStatus {
 }
 
 fn apply_content_rules(
-    context: &FileMatchContext,
+    root: &Path,
+    path: &Path,
     rules: Vec<&Rule>,
     reporter: &mut dyn Reporter,
 ) -> Result<(), std::io::Error> {
-    let file = File::open(context.root.join(context.file))?;
+    let file = File::open(root.join(path))?;
     let reader = BufReader::new(file);
 
     let mut rule_match_statuses: Vec<_> = rules
@@ -116,12 +115,15 @@ fn apply_content_rules(
             }
 
             if status.matched_lines.is_empty() {
-                reporter.report(&context.to_location(), &rule.title);
+                reporter.report(&MatchLocation::for_file(root, path), &rule.title);
                 return;
             }
 
             for line_number in &status.matched_lines {
-                reporter.report(&context.to_location_with_line(*line_number), &rule.title);
+                reporter.report(
+                    &MatchLocation::for_line(root, path, *line_number),
+                    &rule.title,
+                );
             }
         });
 
@@ -191,8 +193,6 @@ struct RuleGlobMatchStatus {
 
 impl Applier<'_> {
     pub fn apply_to_root(&mut self, root: &Path) {
-        let root_context = &RootMatchContext { root };
-
         let mut rules: Vec<_> = self
             .ruleset
             .rules
@@ -212,7 +212,7 @@ impl Applier<'_> {
             if rule.files.is_empty() && rule.nofiles.is_empty() {
                 // rules without any glob matchers always match on the root level
                 self.reporter
-                    .report(&root_context.to_location(), &rule.title);
+                    .report(&MatchLocation::for_root(root), &rule.title);
                 return false;
             }
             true
@@ -230,19 +230,12 @@ impl Applier<'_> {
         let mut match_options = glob::MatchOptions::new();
         match_options.require_literal_separator = true;
 
-        WalkDir::new(root_context.root)
+        WalkDir::new(root)
             .sort_by_file_name()
             .into_iter()
             .filter_map(|e| e.ok())
             .filter(|e| e.file_type().is_file())
-            .map(|e| {
-                Rc::new(
-                    e.into_path()
-                        .strip_prefix(root_context.root)
-                        .unwrap()
-                        .to_path_buf(),
-                )
-            })
+            .map(|e| Rc::new(e.into_path().strip_prefix(root).unwrap().to_path_buf()))
             .for_each(|path| {
                 let mut matching_cache = GlobMatchingCache::new(&path, match_options);
 
@@ -278,6 +271,9 @@ impl Applier<'_> {
 
         let mut content_rules_by_path: HashMap<Rc<PathBuf>, Vec<&Rule>> = HashMap::new();
 
+        let mut root_level_matches: Vec<&Rule> = Default::default();
+        let mut file_level_matches: Vec<(Rc<PathBuf>, &Rule)> = Default::default();
+
         rules
             .iter()
             .zip(rule_match_statuses.iter_mut())
@@ -290,15 +286,13 @@ impl Applier<'_> {
                 }
 
                 if status.matched_paths.is_empty() {
-                    self.reporter
-                        .report(&root_context.to_location(), &rule.title);
+                    root_level_matches.push(rule);
                     return;
                 }
 
                 for path in status.matched_paths.iter() {
                     if rule.match_.is_empty() && rule.nomatch.is_empty() {
-                        self.reporter
-                            .report(&root_context.to_location_with_file(&path), &rule.title);
+                        file_level_matches.push((path.clone(), rule));
                     } else {
                         content_rules_by_path
                             .entry(path.clone())
@@ -309,11 +303,18 @@ impl Applier<'_> {
             });
 
         for (path, rules) in content_rules_by_path.into_iter() {
-            if let Err(err) =
-                apply_content_rules(&root_context.to_file(&path), rules, self.reporter)
-            {
+            if let Err(err) = apply_content_rules(root, &path, rules, self.reporter) {
                 eprintln!("failed to process {}: {}", path.display(), err);
             }
+        }
+
+        for rule in root_level_matches {
+            self.reporter
+                .report(&MatchLocation::for_root(&root), &rule.title);
+        }
+        for (path, rule) in file_level_matches {
+            self.reporter
+                .report(&MatchLocation::for_file(&root, &path), &rule.title);
         }
     }
 }
