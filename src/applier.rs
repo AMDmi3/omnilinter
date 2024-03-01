@@ -296,7 +296,7 @@ impl Applier<'_> {
                 }
 
                 for path in status.matched_paths.iter() {
-                    if rule.match_.is_none() && rule.nomatch.is_none() {
+                    if rule.match_.is_empty() && rule.nomatch.is_empty() {
                         self.reporter
                             .report(&root_context.to_location_with_file(&path), &rule.title);
                     } else {

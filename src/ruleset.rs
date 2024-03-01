@@ -91,8 +91,8 @@ pub struct Rule {
     pub tags: HashSet<String>,
     pub files: Vec<GlobCondition>,
     pub nofiles: Vec<GlobCondition>,
-    pub match_: Option<RegexCondition>,
-    pub nomatch: Option<RegexCondition>,
+    pub match_: Vec<RegexCondition>,
+    pub nomatch: Vec<RegexCondition>,
 }
 
 #[derive(Default, Debug)]

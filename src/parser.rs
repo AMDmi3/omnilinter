@@ -135,20 +135,14 @@ fn parse_rule(
                 conditions_count += 1;
             }
             Rule::rule_directive_match => {
-                if rule.match_.is_some() {
-                    panic!("match condition specified multiple times");
-                }
-                rule.match_ = Some(parse_regexes_condition(
+                rule.match_.push(parse_regexes_condition(
                     item.into_inner().next().unwrap(),
                     conditions_count,
                 ));
                 conditions_count += 1;
             }
             Rule::rule_directive_nomatch => {
-                if rule.nomatch.is_some() {
-                    panic!("nomatch condition specified multiple times");
-                }
-                rule.nomatch = Some(parse_regexes_condition(
+                rule.nomatch.push(parse_regexes_condition(
                     item.into_inner().next().unwrap(),
                     conditions_count,
                 ));
@@ -158,7 +152,7 @@ fn parse_rule(
         }
     }
 
-    if rule.match_.is_some() || rule.nomatch.is_some() {
+    if !rule.match_.is_empty() || !rule.nomatch.is_empty() {
         if rule.files.is_empty() {
             panic!("match and nomatch conditions require files condition to be specified");
         }

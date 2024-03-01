@@ -71,6 +71,21 @@ fn matches_multiple_patterns() {
 }
 
 #[test]
+fn multiple_match() {
+    TestCase::new_for_json_tests()
+        .add_file("a.py", "a\nb\n")
+        .add_rule("files *.py\nmatch /a/\nmatch /b/")
+        .run()
+        .assert_matches(vec!["a.py:2"]);
+
+    TestCase::new_for_json_tests()
+        .add_file("a.py", "c\nb\n")
+        .add_rule("files *.py\nmatch /a/\nmatch /b/")
+        .run()
+        .assert_matches(vec![]);
+}
+
+#[test]
 fn matches_exclusions() {
     TestCase::new_for_json_tests()
         .add_file("a.py", "a\nb\nc")
