@@ -7,6 +7,8 @@ use crate::reporter::Reporter;
 use crate::ruleset::{CompiledRuleset, Glob, GlobCondition, RegexCondition, Rule};
 use context::*;
 use std::collections::{HashMap, HashSet};
+use std::fs::File;
+use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use walkdir::WalkDir;
@@ -43,38 +45,85 @@ fn check_regexes_condition(condition: &RegexCondition, line: &str) -> bool {
         && !condition.excludes.iter().any(|regex| regex.is_match(line))
 }
 
+#[derive(Default, Debug)]
+struct RuleRegexpMatchStatus {
+    pub nomatch_condition_failed: bool,
+    pub match_conditions_passed: Vec<bool>,
+    pub matched_lines: Vec<usize>,
+}
+
 fn apply_content_rules(
     context: &FileMatchContext,
-    mut rules: Vec<&Rule>,
+    rules: Vec<&Rule>,
     reporter: &mut dyn Reporter,
 ) -> Result<(), std::io::Error> {
-    let content = std::fs::read_to_string(context.root.join(context.file))?;
+    let file = File::open(context.root.join(context.file))?;
+    let reader = BufReader::new(file);
 
-    // early drop not matching nomatch rules
-    content.lines().for_each(|line| {
-        rules.retain(|rule| {
-            !rule
-                .nomatch
-                .as_ref()
-                .and_then(|condition| Some(check_regexes_condition(condition, &line)))
-                .unwrap_or(false)
-        });
-    });
+    let mut rule_match_statuses: Vec<_> = rules
+        .iter()
+        .map(|rule| RuleRegexpMatchStatus {
+            nomatch_condition_failed: false,
+            match_conditions_passed: vec![false; rule.match_.iter().count()],
+            matched_lines: vec![],
+        })
+        .collect();
 
-    content.lines().enumerate().for_each(|(nline, line)| {
-        rules.retain(|rule| {
-            if let Some(condition) = &rule.match_ {
-                if check_regexes_condition(condition, &line) && !line.contains(IGNORE_MARKER) {
-                    reporter.report(&context.to_location_with_line(nline), &rule.title);
+    for (line_number, line) in reader.lines().enumerate() {
+        let line = line.unwrap();
+
+        rules
+            .iter()
+            .zip(rule_match_statuses.iter_mut())
+            .for_each(|(rule, status)| {
+                if !status.nomatch_condition_failed {
+                    status.nomatch_condition_failed = rule.nomatch.iter().any(|condition| {
+                        check_regexes_condition(condition, &line) && !line.contains(IGNORE_MARKER)
+                    });
                 }
-            } else {
-                // nomatch-only rules
-                reporter.report(&context.to_location(), &rule.title);
-                return false;
+                if status.nomatch_condition_failed {
+                    return;
+                }
+
+                rule.match_
+                    .iter()
+                    .zip(status.match_conditions_passed.iter_mut())
+                    .for_each(|(condition, is_matched)| {
+                        if condition.is_reporting_target {
+                            if check_regexes_condition(condition, &line)
+                                && !line.contains(IGNORE_MARKER)
+                            {
+                                *is_matched = true;
+                                status.matched_lines.push(line_number);
+                            }
+                        } else if !*is_matched {
+                            *is_matched = check_regexes_condition(condition, &line)
+                                && !line.contains(IGNORE_MARKER);
+                        }
+                    });
+            });
+    }
+
+    rules
+        .iter()
+        .zip(rule_match_statuses.iter_mut())
+        .for_each(|(rule, status)| {
+            if status.nomatch_condition_failed {
+                return;
             }
-            true
+            if !status.match_conditions_passed.iter().all(|passed| *passed) {
+                return;
+            }
+
+            if status.matched_lines.is_empty() {
+                reporter.report(&context.to_location(), &rule.title);
+                return;
+            }
+
+            for line_number in &status.matched_lines {
+                reporter.report(&context.to_location_with_line(*line_number), &rule.title);
+            }
         });
-    });
 
     Ok(())
 }
@@ -215,7 +264,7 @@ impl Applier<'_> {
                             .iter()
                             .zip(status.files_conditions_passed.iter_mut())
                             .for_each(|(condition, is_matched)| {
-                                if condition.is_reporting_target {
+                                if condition.is_reporting_target || condition.matches_content {
                                     if matching_cache.check_condition_match(condition) {
                                         *is_matched = true;
                                         status.matched_paths.push(path.clone());

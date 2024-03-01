@@ -102,7 +102,6 @@ fn parse_rule(
 ) -> RulesetRule {
     let mut rule: RulesetRule = Default::default();
     let mut conditions_count: usize = 0;
-    let mut max_glob_condition_number: usize = 0;
 
     for item in pair.into_inner() {
         match item.as_rule() {
@@ -126,7 +125,6 @@ fn parse_rule(
                     item.into_inner().next().unwrap(),
                     conditions_count,
                 ));
-                max_glob_condition_number = conditions_count;
                 conditions_count += 1;
             }
             Rule::rule_directive_nofiles => {
@@ -134,7 +132,6 @@ fn parse_rule(
                     item.into_inner().next().unwrap(),
                     conditions_count,
                 ));
-                max_glob_condition_number = conditions_count;
                 conditions_count += 1;
             }
             Rule::rule_directive_match => {
@@ -172,10 +169,16 @@ fn parse_rule(
             .for_each(|condition| condition.matches_content = true);
     }
     rule.files.iter_mut().for_each(|condition| {
-        condition.is_reporting_target = condition.number == max_glob_condition_number
+        condition.is_reporting_target = condition.number == conditions_count - 1
     });
     rule.nofiles.iter_mut().for_each(|condition| {
-        condition.is_reporting_target = condition.number == max_glob_condition_number
+        condition.is_reporting_target = condition.number == conditions_count - 1
+    });
+    rule.match_.iter_mut().for_each(|condition| {
+        condition.is_reporting_target = condition.number == conditions_count - 1
+    });
+    rule.nomatch.iter_mut().for_each(|condition| {
+        condition.is_reporting_target = condition.number == conditions_count - 1
     });
 
     rule
