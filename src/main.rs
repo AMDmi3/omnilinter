@@ -10,12 +10,13 @@ mod parser;
 mod reporter;
 mod ruleset;
 
-use crate::applier::{Applier, ApplierOptions};
+use crate::applier::Applier;
 use crate::config::Config;
 use crate::reporter::json::JsonReporter;
 use crate::reporter::stdout::{ReporterOptions, StdoutReporter};
 use crate::reporter::Reporter;
 use clap::Parser;
+use std::collections::HashSet;
 use std::path::PathBuf;
 
 const CONFIG_FILE_NAME: &str = "omnilinter.conf";
@@ -93,16 +94,14 @@ fn main() {
         args.roots
     };
 
+    config.ruleset.filter_by_tags(
+        &HashSet::from_iter(args.required_tags),
+        &HashSet::from_iter(args.ignored_tags),
+    );
+
     let ruleset = config.ruleset.compile();
 
-    let mut applier = Applier::new(
-        &ruleset,
-        reporter.as_mut(),
-        ApplierOptions {
-            required_tags: args.required_tags.into_iter().collect(),
-            ignored_tags: args.ignored_tags.into_iter().collect(),
-        },
-    );
+    let mut applier = Applier::new(&ruleset, reporter.as_mut());
 
     for root in roots {
         applier.apply_to_root(&root);

@@ -4,7 +4,7 @@
 use crate::location::MatchLocation;
 use crate::reporter::Reporter;
 use crate::ruleset::{CompiledRuleset, Glob, GlobCondition, RegexCondition, Rule};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
@@ -13,28 +13,14 @@ use walkdir::WalkDir;
 
 const IGNORE_MARKER: &str = "omnilinter: ignore";
 
-pub struct ApplierOptions {
-    pub required_tags: HashSet<String>,
-    pub ignored_tags: HashSet<String>,
-}
-
 pub struct Applier<'a> {
     ruleset: &'a CompiledRuleset,
     reporter: &'a mut dyn Reporter,
-    options: ApplierOptions,
 }
 
 impl Applier<'_> {
-    pub fn new<'a>(
-        ruleset: &'a CompiledRuleset,
-        reporter: &'a mut dyn Reporter,
-        options: ApplierOptions,
-    ) -> Applier<'a> {
-        Applier {
-            ruleset,
-            reporter,
-            options,
-        }
+    pub fn new<'a>(ruleset: &'a CompiledRuleset, reporter: &'a mut dyn Reporter) -> Applier<'a> {
+        Applier { ruleset, reporter }
     }
 }
 
@@ -129,15 +115,6 @@ fn apply_content_rules(
     Ok(())
 }
 
-fn is_tags_allowed(
-    rule_tags: &HashSet<String>,
-    required_tags: &HashSet<String>,
-    ignored_tags: &HashSet<String>,
-) -> bool {
-    rule_tags.is_disjoint(ignored_tags)
-        && (required_tags.is_empty() || !rule_tags.is_disjoint(required_tags))
-}
-
 struct GlobMatchingCache<'a> {
     path: &'a Path,
     match_options: glob::MatchOptions,
@@ -194,7 +171,7 @@ struct RuleMatchStatus<'a> {
 }
 
 impl<'a> RuleMatchStatus<'a> {
-    pub fn new(rule: &&'a Rule) -> RuleMatchStatus<'a> {
+    pub fn new(rule: &'a Rule) -> RuleMatchStatus<'a> {
         RuleMatchStatus {
             files_conditions_passed: vec![false; rule.files.len()],
             content_checks: vec![],
@@ -206,23 +183,16 @@ impl<'a> RuleMatchStatus<'a> {
 
 impl Applier<'_> {
     pub fn apply_to_root(&mut self, root: &Path) {
-        let rules: Vec<_> = self.ruleset.rules.iter().collect();
-
-        let mut rule_statuses: Vec<RuleMatchStatus> =
-            rules.iter().map(RuleMatchStatus::new).collect();
+        let mut rule_statuses: Vec<RuleMatchStatus> = self
+            .ruleset
+            .rules
+            .iter()
+            .map(RuleMatchStatus::new)
+            .collect();
 
         let mut files_condition_statuses: Vec<bool> = vec![false; self.ruleset.conditions_count];
 
-        let mut rules: Vec<_> = rules
-            .iter()
-            .filter(|rule| {
-                is_tags_allowed(
-                    &rule.tags,
-                    &self.options.required_tags,
-                    &self.options.ignored_tags,
-                )
-            })
-            .collect();
+        let mut rules: Vec<_> = self.ruleset.rules.iter().collect();
 
         rules.retain(|rule| {
             // NOTE: possible checks to tied to root's file hierarchy (such

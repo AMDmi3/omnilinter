@@ -107,6 +107,17 @@ pub struct CompiledRuleset {
 }
 
 impl Ruleset {
+    pub fn filter_by_tags(
+        &mut self,
+        required_tags: &HashSet<String>,
+        ignored_tags: &HashSet<String>,
+    ) {
+        self.rules.retain(|rule| {
+            rule.tags.is_disjoint(ignored_tags)
+                && (required_tags.is_empty() || !rule.tags.is_disjoint(required_tags))
+        })
+    }
+
     pub fn compile(self) -> CompiledRuleset {
         let mut rules = self.rules;
         let mut conditions_count: usize = 0;
