@@ -45,87 +45,86 @@ fn check_regexes_condition(condition: &RegexCondition, line: &str) -> bool {
 
 #[derive(Default, Debug)]
 struct RuleRegexpMatchStatus {
-    pub nomatch_condition_failed: bool,
     pub match_conditions_passed: Vec<bool>,
     pub matched_lines: Vec<usize>,
 }
 
 fn apply_content_rules(
     root: &Path,
-    path: &Path,
-    rules: Vec<&Rule>,
-    reporter: &mut dyn Reporter,
+    path: Rc<PathBuf>,
+    mut rules_with_conditions: Vec<(&Rule, &GlobCondition)>,
+    global_rule_statuses: &mut Vec<RuleMatchStatus>,
+    global_condition_statuses: &mut Vec<bool>,
 ) -> Result<(), std::io::Error> {
-    let file = File::open(root.join(path))?;
+    let file = File::open(root.join(path.as_path()))?;
     let reader = BufReader::new(file);
 
-    let mut rule_match_statuses: Vec<_> = rules
-        .iter()
-        .map(|rule| RuleRegexpMatchStatus {
-            nomatch_condition_failed: false,
-            match_conditions_passed: vec![false; rule.match_.iter().count()],
-            matched_lines: vec![],
-        })
+    let mut local_condition_statuses: Vec<RuleRegexpMatchStatus> = (0..global_condition_statuses
+        .len())
+        .map(|_| Default::default())
         .collect();
 
     for (line_number, line) in reader.lines().enumerate() {
         let line = line.unwrap();
 
-        rules
-            .iter()
-            .zip(rule_match_statuses.iter_mut())
-            .for_each(|(rule, status)| {
-                if !status.nomatch_condition_failed {
-                    status.nomatch_condition_failed = rule.nomatch.iter().any(|condition| {
-                        check_regexes_condition(condition, &line) && !line.contains(IGNORE_MARKER)
-                    });
-                }
-                if status.nomatch_condition_failed {
-                    return;
-                }
+        rules_with_conditions.retain(|(_, condition)| {
+            let condition_status = &mut local_condition_statuses[condition.number];
 
-                rule.match_
-                    .iter()
-                    .zip(status.match_conditions_passed.iter_mut())
-                    .for_each(|(condition, is_matched)| {
-                        if condition.is_reporting_target {
-                            if check_regexes_condition(condition, &line)
-                                && !line.contains(IGNORE_MARKER)
-                            {
-                                *is_matched = true;
-                                status.matched_lines.push(line_number);
-                            }
-                        } else if !*is_matched {
-                            *is_matched = check_regexes_condition(condition, &line)
-                                && !line.contains(IGNORE_MARKER);
+            if condition.nomatch.iter().any(|condition| {
+                check_regexes_condition(condition, &line) && !line.contains(IGNORE_MARKER)
+            }) {
+                return false;
+            }
+
+            if condition_status.match_conditions_passed.len() != condition.match_.len() {
+                condition_status.match_conditions_passed = vec![false; condition.match_.len()];
+            }
+
+            condition
+                .match_
+                .iter()
+                .zip(condition_status.match_conditions_passed.iter_mut())
+                .for_each(|(condition, is_matched)| {
+                    if condition.is_reporting_target {
+                        if check_regexes_condition(condition, &line)
+                            && !line.contains(IGNORE_MARKER)
+                        {
+                            *is_matched = true;
+                            condition_status.matched_lines.push(line_number);
                         }
-                    });
-            });
+                    } else if !*is_matched {
+                        *is_matched = check_regexes_condition(condition, &line)
+                            && !line.contains(IGNORE_MARKER);
+                    }
+                });
+            true
+        });
     }
 
-    rules
-        .iter()
-        .zip(rule_match_statuses.iter_mut())
-        .for_each(|(rule, status)| {
-            if status.nomatch_condition_failed {
-                return;
-            }
-            if !status.match_conditions_passed.iter().all(|passed| *passed) {
-                return;
-            }
+    rules_with_conditions.iter().for_each(|(rule, condition)| {
+        let condition_status = &local_condition_statuses[condition.number];
 
-            if status.matched_lines.is_empty() {
-                reporter.report(&MatchLocation::for_file(root, path), &rule.title);
-                return;
-            }
+        if !condition_status
+            .match_conditions_passed
+            .iter()
+            .all(|passed| *passed)
+        {
+            return;
+        }
 
-            for line_number in &status.matched_lines {
-                reporter.report(
-                    &MatchLocation::for_line(root, path, *line_number),
-                    &rule.title,
-                );
+        global_condition_statuses[condition.number] = true;
+
+        let rule_status = &mut global_rule_statuses[rule.number];
+
+        if condition.is_reporting_target {
+            rule_status.matched_files.push(path.clone());
+        }
+        if !condition_status.matched_lines.is_empty() {
+            for line_number in &condition_status.matched_lines {
+                rule_status.matched_lines.push((path.clone(), *line_number));
             }
-        });
+        }
+    });
 
     Ok(())
 }
@@ -185,17 +184,36 @@ impl<'a> GlobMatchingCache<'a> {
 }
 
 #[derive(Default, Debug)]
-struct RuleGlobMatchStatus {
-    pub nofiles_condition_failed: bool,
+struct RuleMatchStatus<'a> {
     pub files_conditions_passed: Vec<bool>,
-    pub matched_paths: Vec<Rc<PathBuf>>,
+
+    pub content_checks: Vec<(&'a GlobCondition, Rc<PathBuf>)>,
+
+    pub matched_files: Vec<Rc<PathBuf>>,
+    pub matched_lines: Vec<(Rc<PathBuf>, usize)>,
+}
+
+impl<'a> RuleMatchStatus<'a> {
+    pub fn new(rule: &&'a Rule) -> RuleMatchStatus<'a> {
+        RuleMatchStatus {
+            files_conditions_passed: vec![false; rule.files.len()],
+            content_checks: vec![],
+            matched_files: vec![],
+            matched_lines: vec![],
+        }
+    }
 }
 
 impl Applier<'_> {
     pub fn apply_to_root(&mut self, root: &Path) {
-        let mut rules: Vec<_> = self
-            .ruleset
-            .rules
+        let rules: Vec<_> = self.ruleset.rules.iter().collect();
+
+        let mut rule_statuses: Vec<RuleMatchStatus> =
+            rules.iter().map(RuleMatchStatus::new).collect();
+
+        let mut files_condition_statuses: Vec<bool> = vec![false; self.ruleset.conditions_count];
+
+        let mut rules: Vec<_> = rules
             .iter()
             .filter(|rule| {
                 is_tags_allowed(
@@ -218,15 +236,6 @@ impl Applier<'_> {
             true
         });
 
-        let mut rule_match_statuses: Vec<_> = rules
-            .iter()
-            .map(|rule| RuleGlobMatchStatus {
-                nofiles_condition_failed: false,
-                files_conditions_passed: vec![false; rule.files.len()],
-                matched_paths: vec![],
-            })
-            .collect();
-
         let mut match_options = glob::MatchOptions::new();
         match_options.require_literal_separator = true;
 
@@ -239,82 +248,103 @@ impl Applier<'_> {
             .for_each(|path| {
                 let mut matching_cache = GlobMatchingCache::new(&path, match_options);
 
-                rules
-                    .iter()
-                    .zip(rule_match_statuses.iter_mut())
-                    .for_each(|(rule, status)| {
-                        if !status.nofiles_condition_failed {
-                            status.nofiles_condition_failed = rule
-                                .nofiles
-                                .iter()
-                                .any(|condition| matching_cache.check_condition_match(condition));
-                        }
-                        if status.nofiles_condition_failed {
-                            return;
-                        }
-
-                        rule.files
-                            .iter()
-                            .zip(status.files_conditions_passed.iter_mut())
-                            .for_each(|(condition, is_matched)| {
-                                if condition.is_reporting_target || condition.matches_content {
-                                    if matching_cache.check_condition_match(condition) {
-                                        *is_matched = true;
-                                        status.matched_paths.push(path.clone());
-                                    }
-                                } else if !*is_matched {
-                                    *is_matched = matching_cache.check_condition_match(condition);
-                                }
-                            });
-                    });
-            });
-
-        let mut content_rules_by_path: HashMap<Rc<PathBuf>, Vec<&Rule>> = HashMap::new();
-
-        let mut root_level_matches: Vec<&Rule> = Default::default();
-        let mut file_level_matches: Vec<(Rc<PathBuf>, &Rule)> = Default::default();
-
-        rules
-            .iter()
-            .zip(rule_match_statuses.iter_mut())
-            .for_each(|(rule, status)| {
-                if status.nofiles_condition_failed {
-                    return;
-                }
-                if !status.files_conditions_passed.iter().all(|passed| *passed) {
-                    return;
-                }
-
-                if status.matched_paths.is_empty() {
-                    root_level_matches.push(rule);
-                    return;
-                }
-
-                for path in status.matched_paths.iter() {
-                    if rule.match_.is_empty() && rule.nomatch.is_empty() {
-                        file_level_matches.push((path.clone(), rule));
-                    } else {
-                        content_rules_by_path
-                            .entry(path.clone())
-                            .or_default()
-                            .push(&rule);
+                rules.retain(|rule| {
+                    if rule
+                        .nofiles
+                        .iter()
+                        .any(|condition| matching_cache.check_condition_match(condition))
+                    {
+                        return false;
                     }
-                }
+
+                    let rule_status = &mut rule_statuses[rule.number];
+
+                    rule.files
+                        .iter()
+                        .zip(rule_status.files_conditions_passed.iter_mut())
+                        .for_each(|(condition, is_matched)| {
+                            if condition.is_reporting_target
+                                || !condition.match_.is_empty()
+                                || !condition.nomatch.is_empty()
+                            {
+                                if matching_cache.check_condition_match(condition) {
+                                    *is_matched = true;
+                                    if !condition.match_.is_empty() || !condition.nomatch.is_empty()
+                                    {
+                                        rule_status.content_checks.push((condition, path.clone()));
+                                    } else if condition.is_reporting_target {
+                                        rule_status.matched_files.push(path.clone());
+                                    }
+                                }
+                            } else if !*is_matched {
+                                *is_matched = matching_cache.check_condition_match(condition);
+                            }
+                        });
+
+                    true
+                });
             });
 
-        for (path, rules) in content_rules_by_path.into_iter() {
-            if let Err(err) = apply_content_rules(root, &path, rules, self.reporter) {
+        let mut content_rules_by_path: HashMap<Rc<PathBuf>, Vec<(&Rule, &GlobCondition)>> =
+            HashMap::new();
+
+        rules.retain(|rule| {
+            let rule_status = &mut rule_statuses[rule.number];
+
+            if !rule_status
+                .files_conditions_passed
+                .iter()
+                .all(|passed| *passed)
+            {
+                return false;
+            }
+
+            for (condition, path) in rule_status.content_checks.iter() {
+                content_rules_by_path
+                    .entry(path.clone())
+                    .or_default()
+                    .push((&rule, &condition));
+            }
+            true
+        });
+
+        for (path, rules_with_conditions) in content_rules_by_path.into_iter() {
+            if let Err(err) = apply_content_rules(
+                root,
+                path.clone(),
+                rules_with_conditions,
+                &mut rule_statuses,
+                &mut files_condition_statuses,
+            ) {
                 eprintln!("failed to process {}: {}", path.display(), err);
             }
         }
 
-        for rule in root_level_matches {
-            self.reporter
-                .report(&MatchLocation::for_root(&root), &rule.title);
-        }
-        for (path, rule) in file_level_matches {
-            self.reporter
-                .report(&MatchLocation::for_file(&root, &path), &rule.title);
-        }
+        rules.iter().for_each(|rule| {
+            if !rule.files.iter().all(|condition| {
+                condition.match_.is_empty() && condition.nomatch.is_empty()
+                    || files_condition_statuses[condition.number]
+            }) {
+                return;
+            }
+
+            if rule.is_reporting_target {
+                self.reporter
+                    .report(&MatchLocation::for_root(&root), &rule.title);
+            }
+
+            let rule_status = &mut rule_statuses[rule.number];
+
+            for path in &rule_status.matched_files {
+                self.reporter
+                    .report(&MatchLocation::for_file(&root, &path), &rule.title);
+            }
+            for (path, line_number) in &rule_status.matched_lines {
+                self.reporter.report(
+                    &MatchLocation::for_line(&root, &path, *line_number),
+                    &rule.title,
+                );
+            }
+        });
     }
 }

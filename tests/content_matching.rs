@@ -95,7 +95,7 @@ fn matches_exclusions() {
 }
 
 #[test]
-fn nomatch() {
+fn nomatch_() {
     TestCase::new_for_json_tests()
         .add_file("a.py", "a\nb\n\nc\n")
         .add_file("b.py", "# SPDX-License-Identifier: GPLv3\na\nb\n\nc\n")

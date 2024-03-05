@@ -51,16 +51,18 @@ regexps_list_with_exclusions = { included_regexp ~ included_regexp* ~ excluded_r
 
 rule_directive_tags = { "tags" ~ tags_list ~ NEWLINE+ }
 
-rule_directive_files = {"files" ~ globs_list_with_exclusions ~ NEWLINE+ }
+rule_directive_files_inner = {"files" ~ globs_list_with_exclusions ~ NEWLINE+ }
+rule_directive_files = {
+	rule_directive_files_inner ~
+	(rule_directive_match | rule_directive_nomatch)*
+}
 rule_directive_nofiles = { "nofiles" ~ globs_list_with_exclusions ~ NEWLINE+ }
 rule_directive_match = { "match" ~ regexps_list_with_exclusions ~ NEWLINE+ }
 rule_directive_nomatch = { "nomatch" ~ regexps_list_with_exclusions ~ NEWLINE+ }
 
 rule_directive = _{
 	rule_directive_files |
-	rule_directive_nofiles |
-	rule_directive_match |
-	rule_directive_nomatch
+	rule_directive_nofiles
 }
 
 rule = {

@@ -22,10 +22,7 @@ fn parse_tags(pair: pest::iterators::Pair<Rule>) -> HashSet<String> {
         .collect()
 }
 
-fn parse_globs_condition(
-    pair: pest::iterators::Pair<Rule>,
-    condition_number: usize,
-) -> GlobCondition {
+fn parse_globs_condition(pair: pest::iterators::Pair<Rule>) -> GlobCondition {
     let mut cond: GlobCondition = Default::default();
     for item in pair.into_inner() {
         let item = item.as_str();
@@ -35,7 +32,6 @@ fn parse_globs_condition(
             cond.patterns.push(Glob::new(item).unwrap());
         }
     }
-    cond.number = condition_number;
     cond
 }
 
@@ -78,10 +74,7 @@ fn parse_regex_str(s: &str) -> Regex {
     Regex::new(&output).unwrap()
 }
 
-fn parse_regexes_condition(
-    pair: pest::iterators::Pair<Rule>,
-    condition_number: usize,
-) -> RegexCondition {
+fn parse_regexes_condition(pair: pest::iterators::Pair<Rule>) -> RegexCondition {
     let mut cond: RegexCondition = Default::default();
     for item in pair.into_inner() {
         let item = item.as_str();
@@ -91,8 +84,35 @@ fn parse_regexes_condition(
             cond.patterns.push(parse_regex_str(item));
         }
     }
-    cond.number = condition_number;
     cond
+}
+
+fn parse_files_condition(pair: pest::iterators::Pair<Rule>) -> GlobCondition {
+    let mut condition: GlobCondition = Default::default();
+
+    for item in pair.into_inner() {
+        match item.as_rule() {
+            Rule::rule_directive_files_inner => {
+                condition = parse_globs_condition(item.into_inner().next().unwrap());
+            }
+            Rule::rule_directive_match => {
+                condition
+                    .match_
+                    .push(parse_regexes_condition(item.into_inner().next().unwrap()));
+            }
+            Rule::rule_directive_nomatch => {
+                condition
+                    .nomatch
+                    .push(parse_regexes_condition(item.into_inner().next().unwrap()));
+            }
+            _ => unreachable!(
+                "unexpected parser rule type in parse_files_condition {:#?}",
+                item
+            ),
+        }
+    }
+
+    condition
 }
 
 fn parse_rule(
@@ -101,7 +121,6 @@ fn parse_rule(
     source_desc: &str,
 ) -> RulesetRule {
     let mut rule: RulesetRule = Default::default();
-    let mut conditions_count: usize = 0;
 
     for item in pair.into_inner() {
         match item.as_rule() {
@@ -121,59 +140,15 @@ fn parse_rule(
             }
             Rule::rule_directive_tags => rule.tags = parse_tags(item.into_inner().next().unwrap()),
             Rule::rule_directive_files => {
-                rule.files.push(parse_globs_condition(
-                    item.into_inner().next().unwrap(),
-                    conditions_count,
-                ));
-                conditions_count += 1;
+                rule.files.push(parse_files_condition(item));
             }
             Rule::rule_directive_nofiles => {
-                rule.nofiles.push(parse_globs_condition(
-                    item.into_inner().next().unwrap(),
-                    conditions_count,
-                ));
-                conditions_count += 1;
-            }
-            Rule::rule_directive_match => {
-                rule.match_.push(parse_regexes_condition(
-                    item.into_inner().next().unwrap(),
-                    conditions_count,
-                ));
-                conditions_count += 1;
-            }
-            Rule::rule_directive_nomatch => {
-                rule.nomatch.push(parse_regexes_condition(
-                    item.into_inner().next().unwrap(),
-                    conditions_count,
-                ));
-                conditions_count += 1;
+                rule.nofiles
+                    .push(parse_globs_condition(item.into_inner().next().unwrap()));
             }
             _ => unreachable!("unexpected parser rule type in parse_rule {:#?}", item),
         }
     }
-
-    if !rule.match_.is_empty() || !rule.nomatch.is_empty() {
-        if rule.files.is_empty() {
-            panic!("match and nomatch conditions require files condition to be specified");
-        }
-        rule.files
-            .iter_mut()
-            .last()
-            .iter_mut()
-            .for_each(|condition| condition.matches_content = true);
-    }
-    rule.files.iter_mut().for_each(|condition| {
-        condition.is_reporting_target = condition.number == conditions_count - 1
-    });
-    rule.nofiles.iter_mut().for_each(|condition| {
-        condition.is_reporting_target = condition.number == conditions_count - 1
-    });
-    rule.match_.iter_mut().for_each(|condition| {
-        condition.is_reporting_target = condition.number == conditions_count - 1
-    });
-    rule.nomatch.iter_mut().for_each(|condition| {
-        condition.is_reporting_target = condition.number == conditions_count - 1
-    });
 
     rule
 }

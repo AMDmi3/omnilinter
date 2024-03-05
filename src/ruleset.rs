@@ -72,7 +72,8 @@ pub struct GlobCondition {
     pub number: usize,
     pub patterns: Vec<Glob>,
     pub excludes: Vec<Glob>,
-    pub matches_content: bool,
+    pub match_: Vec<RegexCondition>,
+    pub nomatch: Vec<RegexCondition>,
     pub is_reporting_target: bool,
 }
 
@@ -91,8 +92,7 @@ pub struct Rule {
     pub tags: HashSet<String>,
     pub files: Vec<GlobCondition>,
     pub nofiles: Vec<GlobCondition>,
-    pub match_: Vec<RegexCondition>,
-    pub nomatch: Vec<RegexCondition>,
+    pub is_reporting_target: bool,
 }
 
 #[derive(Default, Debug)]
@@ -109,38 +109,73 @@ pub struct CompiledRuleset {
 impl Ruleset {
     pub fn compile(self) -> CompiledRuleset {
         let mut rules = self.rules;
-
-        let mut total_conditions_count = 0;
+        let mut conditions_count: usize = 0;
 
         rules
             .iter_mut()
             .enumerate()
             .for_each(|(rule_number, rule)| {
                 rule.number = rule_number;
-                let rule_conditions_count = rule.files.iter().count()
-                    + rule.nofiles.iter().count()
-                    + rule.match_.iter().count()
-                    + rule.nomatch.iter().count();
+
+                let mut last_glob_cond: Option<usize> = None;
+                let mut last_files_cond: Option<usize> = None;
+                let mut last_match_cond: Option<usize> = None;
 
                 rule.files.iter_mut().for_each(|condition| {
-                    condition.number += total_conditions_count;
+                    condition.number = conditions_count;
+                    last_glob_cond = Some(conditions_count);
+                    last_files_cond = Some(conditions_count);
+                    conditions_count += 1;
+
+                    condition.match_.iter_mut().for_each(|condition| {
+                        condition.number = conditions_count;
+                        last_match_cond = Some(conditions_count);
+                        conditions_count += 1;
+                    });
+                    condition.nomatch.iter_mut().for_each(|condition| {
+                        condition.number = conditions_count;
+                        conditions_count += 1;
+                    });
                 });
                 rule.nofiles.iter_mut().for_each(|condition| {
-                    condition.number += total_conditions_count;
-                });
-                rule.match_.iter_mut().for_each(|condition| {
-                    condition.number += total_conditions_count;
-                });
-                rule.nomatch.iter_mut().for_each(|condition| {
-                    condition.number += total_conditions_count;
+                    condition.number = conditions_count;
+                    last_glob_cond = Some(conditions_count);
+                    conditions_count += 1;
                 });
 
-                total_conditions_count += rule_conditions_count;
+                let reporting_target_condition_number = if let Some(last_match_cond) =
+                    last_match_cond
+                    && last_match_cond == conditions_count - 1
+                {
+                    // match which is the last condition
+                    last_match_cond
+                } else if let (Some(last_files_cond), Some(last_glob_cond)) =
+                    (last_files_cond, last_glob_cond)
+                    && last_files_cond == last_glob_cond
+                {
+                    // files which is the last glob condition
+                    last_glob_cond
+                } else {
+                    // otherwise reports at root level
+                    rule.is_reporting_target = true;
+                    return;
+                };
+
+                rule.files.iter_mut().for_each(|condition| {
+                    if condition.number == reporting_target_condition_number {
+                        condition.is_reporting_target = true;
+                    }
+                    condition.match_.iter_mut().for_each(|condition| {
+                        if condition.number == reporting_target_condition_number {
+                            condition.is_reporting_target = true;
+                        }
+                    });
+                });
             });
 
         CompiledRuleset {
             rules,
-            conditions_count: total_conditions_count,
+            conditions_count,
         }
     }
 }
