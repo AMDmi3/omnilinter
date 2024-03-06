@@ -54,16 +54,15 @@ struct Args {
     ignored_tags: Vec<String>,
 
     /// Output format
-    //#[arg(short = 'f', long = "format", default_value_t = "by-root-grouped")]
-    #[arg(short = 'f', long = "format", value_enum, default_value_t = OutputFormat::ByRoot)]
+    #[arg(short = 'f', long = "format", value_name = "FORMAT", value_enum, default_value_t = OutputFormat::ByRoot)]
     output_format: OutputFormat,
 
     /// If any matches are found, exit with given code
     #[arg(long, value_name = "EXITCODE")]
     error_exitcode: Option<i32>,
 
-    /// If any matches are found, exit with given code
-    #[arg(short = 'j', long = "jobs", value_name = "COUNT")]
+    /// Number of target directories to process simultaneously
+    #[arg(short = 'j', long = "jobs", value_name = "JOBS")]
     num_threads: Option<usize>,
 
     /// Directories to operate on
