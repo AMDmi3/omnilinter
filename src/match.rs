@@ -24,6 +24,11 @@ impl<'a> MatchResult<'a> {
     }
 }
 
+// Although MatchResult contains Rc<> in individual matches, it is safe
+// to transfer across thread boundaries as a whole, because Rc's are only
+// shared inside of it
+unsafe impl Send for MatchResult<'_> {}
+
 pub struct Match<'a> {
     pub rule: &'a Rule,
     pub root: &'a Path,
