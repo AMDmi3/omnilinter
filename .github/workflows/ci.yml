@@ -25,9 +25,9 @@ jobs:
         run: cargo test
       - name: Format check
         run: cargo fmt --check
-      - name: Run omnilinter on its own repository
+      - name: Run omnilinter on its own repository (all checks)
         run: cargo run -- --config .omnilinter.conf .
-      - name: Run omnilinter on its own repository
+      - name: Run omnilinter on its own repository (fatal checks)
         run: cargo run -- --error-exitcode 1 --tags fatal --config .omnilinter.conf .
 
   coverage:
