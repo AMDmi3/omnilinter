@@ -1,5 +1,9 @@
 # omnilinter
 
+![CI](https://github.com/AMDmi3/omnilinter/workflows/CI/badge.svg)
+[![codecov](https://codecov.io/gh/AMDmi3/omnilinter/graph/badge.svg?token=LZC12KUQ0M)](https://codecov.io/gh/AMDmi3/omnilinter)
+[![Github commits (since latest release)](https://img.shields.io/github/commits-since/AMDmi3/omnilinter/latest.svg)](https://github.com/AMDmi3/omnilinter)
+
 Define file pattern and regular expression rules and match against all
 your repositories/projects/codebases at once. Omnilinter helps you to
 push and uphold good practices and fix problems all over your code, even
