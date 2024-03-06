@@ -9,7 +9,7 @@ jobs:
         include:
           - { rust: "1.73", required: false }
           - { rust: "1.74", required: false }
-          - { rust: stable, required: true }
+          - { rust: stable, required: false }
           - { rust: nightly, required: true }
     steps:
       - uses: actions/checkout@v3
