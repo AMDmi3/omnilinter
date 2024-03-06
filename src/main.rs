@@ -12,6 +12,7 @@ mod ruleset;
 
 use crate::applier::apply_ruleset;
 use crate::config::Config;
+use crate::format_text::Palette;
 use crate::formatters::json as format_json;
 use crate::formatters::text as format_text;
 use crate::r#match::MatchResult;
@@ -34,8 +35,18 @@ enum OutputFormat {
     /// Plain text output, grouped by rule
     ByRule,
 
+    /// Plain text output, grouped by path
+    ByPath,
+
     /// JSON output
     Json,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+enum ColorMode {
+    Auto,
+    Always,
+    Never,
 }
 
 #[derive(clap::Parser, Debug)]
@@ -57,6 +68,14 @@ struct Args {
     #[arg(short = 'f', long = "format", value_name = "FORMAT", value_enum, default_value_t = OutputFormat::ByRoot)]
     output_format: OutputFormat,
 
+    /// Coloring
+    #[arg(long = "color", value_name = "MODE", value_enum, default_value_t = ColorMode::Auto)]
+    color_mode: ColorMode,
+
+    /// Palette to use for rule coloring
+    #[arg(long = "palette", value_name = "PALETTE", value_enum, default_value_t = Palette::Simple)]
+    palette: format_text::Palette,
+
     /// If any matches are found, exit with given code
     #[arg(long, value_name = "EXITCODE")]
     error_exitcode: Option<i32>,
@@ -72,6 +91,12 @@ struct Args {
 
 fn main() {
     let args = Args::parse();
+
+    match args.color_mode {
+        ColorMode::Always => colored::control::set_override(true),
+        ColorMode::Never => colored::control::set_override(false),
+        _ => {}
+    }
 
     let mut config = Config::new();
 
@@ -132,12 +157,17 @@ fn main() {
 
     match args.output_format {
         OutputFormat::ByRoot => {
-            format_text::format_matches(&result, format_text::Format::ByRootGrouped)
+            format_text::format_matches(&result, format_text::Format::ByRootGrouped, args.palette)
         }
         OutputFormat::FullPaths => {
-            format_text::format_matches(&result, format_text::Format::ByRootFullPaths)
+            format_text::format_matches(&result, format_text::Format::ByRootFullPaths, args.palette)
         }
-        OutputFormat::ByRule => format_text::format_matches(&result, format_text::Format::ByRule),
+        OutputFormat::ByRule => {
+            format_text::format_matches(&result, format_text::Format::ByRule, args.palette)
+        }
+        OutputFormat::ByPath => {
+            format_text::format_matches(&result, format_text::Format::ByPath, args.palette)
+        }
         OutputFormat::Json => format_json::format_matches(&result),
     }
 
