@@ -214,7 +214,7 @@ pub fn apply_ruleset<'a>(ruleset: &'a CompiledRuleset, root: &'a Path) -> MatchR
             content_rules_by_path
                 .entry(path.clone())
                 .or_default()
-                .push((&rule, &condition));
+                .push((rule, condition));
         }
         true
     });
@@ -248,12 +248,12 @@ pub fn apply_ruleset<'a>(ruleset: &'a CompiledRuleset, root: &'a Path) -> MatchR
         for path in &rule_status.matched_files {
             result
                 .matches
-                .push(Match::for_file(&rule, &root, path.clone()))
+                .push(Match::for_file(rule, root, path.clone()))
         }
         for (path, line_number) in &rule_status.matched_lines {
             result
                 .matches
-                .push(Match::for_line(&rule, &root, path.clone(), *line_number))
+                .push(Match::for_line(rule, root, path.clone(), *line_number))
         }
     });
 

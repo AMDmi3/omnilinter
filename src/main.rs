@@ -138,7 +138,7 @@ fn main() {
     let result = {
         let result = Arc::new(Mutex::new(MatchResult::new()));
 
-        let num_threads = args.num_threads.unwrap_or_else(|| num_cpus::get());
+        let num_threads = args.num_threads.unwrap_or_else(num_cpus::get);
         let mut pool = ThreadPool::new(num_threads.try_into().unwrap_or(1));
 
         pool.scoped(|scope| {
@@ -146,7 +146,7 @@ fn main() {
             for root in &roots {
                 let result = result.clone();
                 scope.execute(move || {
-                    let res = apply_ruleset(&ruleset, &root);
+                    let res = apply_ruleset(ruleset, root);
                     result.lock().unwrap().append(res);
                 });
             }

@@ -36,7 +36,7 @@ impl TestCase {
         fs::create_dir(temp_dir.path().join("root")).unwrap();
 
         Self {
-            temp_dir: temp_dir,
+            temp_dir,
             args: vec!["--config=omnilinter.conf", "--format=json", "root"]
                 .into_iter()
                 .map(|a| a.to_string())
@@ -52,7 +52,7 @@ impl TestCase {
         fs::create_dir(temp_dir.path().join("root")).unwrap();
 
         Self {
-            temp_dir: temp_dir,
+            temp_dir,
             args: vec!["--config=omnilinter.conf", "root"]
                 .into_iter()
                 .map(|a| a.to_string())

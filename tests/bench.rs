@@ -39,7 +39,7 @@ fn file_checks_with_many_matching_rules_with_same_pattern(c: &mut Criterion) {
     let mut testcase = TestCase::new_for_json_tests();
     testcase.generate_files(10000, 1);
     for _ in 1..=100 {
-        testcase.add_rule(&format!("files 1.txt"));
+        testcase.add_rule("files 1.txt");
     }
 
     c.bench_function(

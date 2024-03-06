@@ -28,8 +28,7 @@ pub fn format_matches(match_result: &MatchResult) {
                 line: m
                     .file
                     .as_ref()
-                    .map(|file| file.line.map(|line| line + 1))
-                    .flatten(),
+                    .and_then(|file| file.line.map(|line| line + 1)),
             })
             .unwrap()
         );

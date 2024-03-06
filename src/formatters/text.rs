@@ -39,7 +39,7 @@ fn order_by_rules(lhs: &&Match, rhs: &&Match) -> std::cmp::Ordering {
     lhs.rule
         .number
         .cmp(&rhs.rule.number)
-        .then_with(|| lhs.root.cmp(&rhs.root))
+        .then_with(|| lhs.root.cmp(rhs.root))
         .then_with(|| lhs.file.cmp(&rhs.file)) // note: sorts by both path and line
         .then_with(|| lhs.rule.number.cmp(&rhs.rule.number))
 }
@@ -54,11 +54,7 @@ fn sort_matches(matches: &mut Vec<&Match>, format: Format) {
 }
 
 fn get_path_rel(m: &Match) -> Option<String> {
-    if let Some(file) = &m.file {
-        Some(file.path.display().to_string())
-    } else {
-        None
-    }
+    m.file.as_ref().map(|file| file.path.display().to_string())
 }
 
 fn get_path_abs(m: &Match) -> String {
@@ -173,7 +169,7 @@ pub fn format_matches(match_result: &MatchResult, format: Format, palette: Palet
     let mut prev_group: Option<String> = None;
 
     for m in matches {
-        let current_group = get_group(&m, format, palette);
+        let current_group = get_group(m, format, palette);
         if current_group != prev_group {
             if let Some(group) = &current_group {
                 println!("{}{}", get_group_prefix(format), group);
