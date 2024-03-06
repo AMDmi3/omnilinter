@@ -40,7 +40,7 @@ fn apply_content_rules(
         .collect();
 
     for (line_number, line) in reader.lines().enumerate() {
-        let line = line.unwrap();
+        let line = line?;
 
         rules_with_conditions.retain(|(_, condition)| {
             let condition_status = &mut local_condition_statuses[condition.number];
