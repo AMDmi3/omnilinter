@@ -26,9 +26,9 @@ jobs:
       - name: Format check
         run: cargo fmt --check
       - name: Run omnilinter on its own repository (all checks)
-        run: cargo run -- --config .omnilinter.conf .
+        run: cargo run --quiet -- --color always --format=by-rule --config .omnilinter.conf .
       - name: Run omnilinter on its own repository (fatal checks)
-        run: cargo run -- --error-exitcode 1 --tags fatal --config .omnilinter.conf .
+        run: cargo run --quiet -- --color always --format=by-rule --config .omnilinter.conf --error-exitcode 1 --tags fatal .
 
   coverage:
     runs-on: ubuntu-latest
