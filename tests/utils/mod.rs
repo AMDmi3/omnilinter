@@ -37,7 +37,7 @@ impl TestCase {
 
         Self {
             temp_dir: temp_dir,
-            args: vec!["--config=omnilinter.conf", "--json", "root"]
+            args: vec!["--config=omnilinter.conf", "--format=json", "root"]
                 .into_iter()
                 .map(|a| a.to_string())
                 .collect(),

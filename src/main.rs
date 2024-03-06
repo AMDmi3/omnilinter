@@ -5,21 +5,36 @@
 
 mod applier;
 mod config;
-mod location;
+mod formatters;
+mod r#match;
 mod parser;
-mod reporter;
 mod ruleset;
 
-use crate::applier::Applier;
+use crate::applier::apply_ruleset;
 use crate::config::Config;
-use crate::reporter::json::JsonReporter;
-use crate::reporter::stdout::{ReporterOptions, StdoutReporter};
-use crate::reporter::Reporter;
-use clap::Parser;
+use crate::formatters::json as format_json;
+use crate::formatters::text as format_text;
+use crate::r#match::MatchResult;
+use clap::{Parser, ValueEnum};
 use std::collections::HashSet;
 use std::path::PathBuf;
 
 const CONFIG_FILE_NAME: &str = "omnilinter.conf";
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+enum OutputFormat {
+    /// Plain text output, grouped by root
+    ByRoot,
+
+    /// Plain text output, full paths
+    FullPaths,
+
+    /// Plain text output, grouped by rule
+    ByRule,
+
+    /// JSON output
+    Json,
+}
 
 #[derive(clap::Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -36,13 +51,10 @@ struct Args {
     #[arg(long = "skip-tags", value_name = "TAGS")]
     ignored_tags: Vec<String>,
 
-    /// Report full paths of matched files
-    #[arg(short = 'f', long = "full-paths")]
-    report_full_paths: bool,
-
-    /// Output matches in JSON format
-    #[arg(long = "json")]
-    json_output: bool,
+    /// Output format
+    //#[arg(short = 'f', long = "format", default_value_t = "by-root-grouped")]
+    #[arg(short = 'f', long = "format", value_enum, default_value_t = OutputFormat::ByRoot)]
+    output_format: OutputFormat,
 
     /// If any matches are found, exit with given code
     #[arg(long, value_name = "EXITCODE")]
@@ -80,14 +92,6 @@ fn main() {
         eprintln!("Warning: ruleset is empty");
     }
 
-    let mut reporter: Box<dyn Reporter> = if args.json_output {
-        Box::new(JsonReporter::new())
-    } else {
-        Box::new(StdoutReporter::new(ReporterOptions {
-            full_paths: args.report_full_paths,
-        }))
-    };
-
     let roots = if args.roots.is_empty() {
         config.roots
     } else {
@@ -101,16 +105,25 @@ fn main() {
 
     let ruleset = config.ruleset.compile();
 
-    let mut applier = Applier::new(&ruleset, reporter.as_mut());
+    let mut result = MatchResult::new();
 
-    for root in roots {
-        applier.apply_to_root(&root);
+    for root in &roots {
+        result.append(apply_ruleset(&ruleset, &root));
     }
 
-    reporter.flush();
+    match args.output_format {
+        OutputFormat::ByRoot => {
+            format_text::format_matches(&result, format_text::Format::ByRootGrouped)
+        }
+        OutputFormat::FullPaths => {
+            format_text::format_matches(&result, format_text::Format::ByRootFullPaths)
+        }
+        OutputFormat::ByRule => format_text::format_matches(&result, format_text::Format::ByRule),
+        OutputFormat::Json => format_json::format_matches(&result),
+    }
 
     if let Some(error_exitcode) = args.error_exitcode {
-        if reporter.has_matches() {
+        if !result.is_empty() {
             std::process::exit(error_exitcode);
         }
     }
