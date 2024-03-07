@@ -37,8 +37,7 @@ excluded_glob = @{ "!" ~ simple_glob }
 globs_list_with_exclusions = { included_glob ~ included_glob* ~ excluded_glob* }
 
 regexp_char = {
-	!("\\" | "\n" | "\r" | PEEK) ~ ANY
-	| "\\" ~ ("\\" | PEEK)
+	!("\n" | "\r" | PEEK) ~ ANY
 }
 simple_regexp = @{
 	PUSH(!("\n" | "\r" | " " | "\t") ~ ANY) ~

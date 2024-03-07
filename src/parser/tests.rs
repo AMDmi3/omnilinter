@@ -86,7 +86,7 @@ mod parse_regexp {
 
     #[test]
     fn character_classes_support() {
-        let text = lines!["[]", "files *", r"match /\\s+/"];
+        let text = lines!["[]", "files *", r"match /\s+/"];
         let config = Config::from_str(text).unwrap();
         assert!(
             config.ruleset.rules[0].path_conditions[0].content_conditions[0].patterns[0]
@@ -97,11 +97,11 @@ mod parse_regexp {
     #[test]
     fn escaping() {
         // XXX: this is incompre this out; consider disallowing escaping in regexps to avoid confusion
-        let text = lines!["[]", "files *", r"match /a\/b\\\\c/"];
+        let text = lines!["[]", "files *", r"match /a\\c/"];
         let config = Config::from_str(text).unwrap();
         assert_eq!(
             config.ruleset.rules[0].path_conditions[0].content_conditions[0].patterns[0].as_str(),
-            r"a/b\\c"
+            r"a\\c"
         );
     }
 
@@ -115,7 +115,7 @@ mod parse_regexp {
     #[test]
     #[should_panic]
     fn escape_at_eol() {
-        let text = lines!["[]", "files *", r"match /foo\"];
+        let text = lines!["[]", "files *", r"match /foo/bar/"];
         Config::from_str(text).unwrap();
     }
 }
