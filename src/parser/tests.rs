@@ -16,21 +16,35 @@ mod parse_rule_title {
 
     #[test]
     fn simple() {
-        let text = lines!["[test rule]", "files *"];
+        let text = lines!["[test rule] # ]"];
         let config = Config::from_str(text).unwrap();
         assert_eq!(config.ruleset.rules[0].title, "test rule");
     }
 
     #[test]
     #[should_panic]
-    fn unescaped_delimiter() {
-        let text = lines!["[test[ ]rule]", "files *"];
+    fn unclosed() {
+        let text = lines!["[test"];
         let _config = Config::from_str(text).unwrap();
     }
 
     #[test]
-    fn escaped_delimiter() {
-        let text = lines![r"[test[ \]rule]", "files *"];
+    #[should_panic]
+    fn incorrect_escaping() {
+        let text = lines!["[test[ ]rule]"];
+        let _config = Config::from_str(text).unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn incorrect_escaping_at_end() {
+        let text = lines!["[test rule]]"];
+        let _config = Config::from_str(text).unwrap();
+    }
+
+    #[test]
+    fn correct_escaping() {
+        let text = lines![r"[test[ ]]rule] # ]"];
         let config = Config::from_str(text).unwrap();
         assert_eq!(config.ruleset.rules[0].title, "test[ ]rule");
     }

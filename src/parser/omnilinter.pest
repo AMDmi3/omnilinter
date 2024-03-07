@@ -2,8 +2,8 @@ WHITESPACE = _{ " " | "\t" }
 COMMENT = _{ "#" ~ (!"\n" ~ ANY)* }
 
 rule_title_char = {
-	!("\\" | "\n" | "\r" | "]") ~ ANY
-	| "\\" ~ ("\\" | "]")
+	!("\n" | "\r" | "]") ~ ANY
+	| "]]"
 }
 rule_title_inner = @{ rule_title_char* }
 rule_title_outer = ${ "[" ~ rule_title_inner ~ "]" }

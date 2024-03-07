@@ -40,22 +40,7 @@ fn parse_globs_condition(
 }
 
 fn parse_title(s: &str) -> String {
-    let s = &s[1..s.len() - 1];
-    let mut output: String = String::with_capacity(s.len());
-    let mut escaped = false;
-    for c in s.chars() {
-        if escaped {
-            debug_assert!(c == '\\' || c == ']'); //enforced by the parser
-            output.push(c);
-            escaped = false;
-        } else if c == '\\' {
-            escaped = true;
-        } else {
-            output.push(c);
-        }
-    }
-
-    output
+    s[1..s.len() - 1].replace("]]", "]")
 }
 
 fn parse_regex_str(s: &str) -> Regex {
