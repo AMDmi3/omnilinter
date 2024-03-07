@@ -4,7 +4,7 @@
 mod glob_cache;
 
 use crate::r#match::{Match, MatchResult};
-use crate::ruleset::{CompiledRuleset, GlobCondition, RegexCondition, Rule};
+use crate::ruleset::{CompiledRuleset, ConditionLogic, GlobCondition, RegexCondition, Rule};
 use glob_cache::GlobMatchingCache;
 use std::collections::HashMap;
 use std::fs::File;
@@ -30,41 +30,49 @@ fn apply_content_rules(
     let file = File::open(root.join(path.as_path()))?;
     let reader = BufReader::new(file);
 
-    let mut content_condition_statuses: Vec<bool> = vec![false; global_condition_statuses.len()];
+    let mut local_condition_statuses: Vec<bool> = vec![false; global_condition_statuses.len()];
 
     for (line_number, line) in reader.lines().enumerate() {
         let line = line?;
 
-        rules_with_conditions.retain(|(rule, condition)| {
-            if condition.nomatch.iter().any(|condition| {
-                check_regexes_condition(condition, &line) && !line.contains(IGNORE_MARKER)
-            }) {
-                return false;
-            }
-
-            condition.match_.iter().for_each(|condition| {
-                let is_matched = &mut content_condition_statuses[condition.number];
-                if condition.is_reporting_target {
-                    if check_regexes_condition(condition, &line) && !line.contains(IGNORE_MARKER) {
-                        *is_matched = true;
-                        global_rule_statuses[rule.number]
-                            .matched_lines
-                            .push((path.clone(), line_number));
+        rules_with_conditions.retain(|(rule, path_condition)| {
+            for content_condition in &path_condition.content_conditions {
+                match content_condition.logic {
+                    ConditionLogic::Negative => {
+                        if check_regexes_condition(content_condition, &line)
+                            && !line.contains(IGNORE_MARKER)
+                        {
+                            return false;
+                        }
                     }
-                } else if !*is_matched {
-                    *is_matched =
-                        check_regexes_condition(condition, &line) && !line.contains(IGNORE_MARKER);
+                    ConditionLogic::Positive => {
+                        let is_matched = &mut local_condition_statuses[content_condition.number];
+                        if content_condition.is_reporting_target {
+                            if check_regexes_condition(content_condition, &line)
+                                && !line.contains(IGNORE_MARKER)
+                            {
+                                *is_matched = true;
+                                global_rule_statuses[rule.number]
+                                    .matched_lines
+                                    .push((path.clone(), line_number));
+                            }
+                        } else if !*is_matched {
+                            *is_matched = check_regexes_condition(content_condition, &line)
+                                && !line.contains(IGNORE_MARKER);
+                        }
+                    }
                 }
-            });
+            }
             true
         });
     }
 
     rules_with_conditions.iter().for_each(|(rule, condition)| {
         if !condition
-            .match_
+            .content_conditions
             .iter()
-            .all(|condition| content_condition_statuses[condition.number])
+            .filter(|content_condition| content_condition.logic == ConditionLogic::Positive)
+            .all(|content_condition| local_condition_statuses[content_condition.number])
         {
             return;
         }
@@ -150,13 +158,11 @@ pub fn apply_ruleset<'a>(ruleset: &'a CompiledRuleset, root: &'a Path) -> MatchR
                     .iter()
                     .zip(rule_status.files_conditions_passed.iter_mut())
                     .for_each(|(condition, is_matched)| {
-                        if condition.is_reporting_target
-                            || !condition.match_.is_empty()
-                            || !condition.nomatch.is_empty()
+                        if condition.is_reporting_target || !condition.content_conditions.is_empty()
                         {
                             if matching_cache.check_condition_match(condition) {
                                 *is_matched = true;
-                                if !condition.match_.is_empty() || !condition.nomatch.is_empty() {
+                                if !condition.content_conditions.is_empty() {
                                     rule_status.content_checks.push((condition, path.clone()));
                                 } else if condition.is_reporting_target {
                                     rule_status.matched_files.push(path.clone());
@@ -208,8 +214,7 @@ pub fn apply_ruleset<'a>(ruleset: &'a CompiledRuleset, root: &'a Path) -> MatchR
 
     rules.iter().for_each(|rule| {
         if !rule.files.iter().all(|condition| {
-            condition.match_.is_empty() && condition.nomatch.is_empty()
-                || files_condition_statuses[condition.number]
+            condition.content_conditions.is_empty() || files_condition_statuses[condition.number]
         }) {
             return;
         }

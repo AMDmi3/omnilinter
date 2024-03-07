@@ -67,19 +67,26 @@ impl Glob {
     }
 }
 
+#[derive(Default, Debug, PartialEq, Eq)]
+pub enum ConditionLogic {
+    #[default]
+    Positive,
+    Negative,
+}
+
 #[derive(Default, Debug)]
 pub struct GlobCondition {
     pub number: usize,
     pub patterns: Vec<Glob>,
     pub excludes: Vec<Glob>,
-    pub match_: Vec<RegexCondition>,
-    pub nomatch: Vec<RegexCondition>,
+    pub content_conditions: Vec<RegexCondition>,
     pub is_reporting_target: bool,
 }
 
 #[derive(Default, Debug)]
 pub struct RegexCondition {
     pub number: usize,
+    pub logic: ConditionLogic,
     pub patterns: Vec<Regex>,
     pub excludes: Vec<Regex>,
     pub is_reporting_target: bool,
@@ -138,15 +145,16 @@ impl Ruleset {
                     last_files_cond = Some(conditions_count);
                     conditions_count += 1;
 
-                    condition.match_.iter_mut().for_each(|condition| {
-                        condition.number = conditions_count;
-                        last_match_cond = Some(conditions_count);
-                        conditions_count += 1;
-                    });
-                    condition.nomatch.iter_mut().for_each(|condition| {
-                        condition.number = conditions_count;
-                        conditions_count += 1;
-                    });
+                    condition
+                        .content_conditions
+                        .iter_mut()
+                        .for_each(|content_condition| {
+                            content_condition.number = conditions_count;
+                            if content_condition.logic == ConditionLogic::Positive {
+                                last_match_cond = Some(conditions_count);
+                            }
+                            conditions_count += 1;
+                        });
                 });
                 rule.nofiles.iter_mut().for_each(|condition| {
                     condition.number = conditions_count;
@@ -176,11 +184,14 @@ impl Ruleset {
                     if condition.number == reporting_target_condition_number {
                         condition.is_reporting_target = true;
                     }
-                    condition.match_.iter_mut().for_each(|condition| {
-                        if condition.number == reporting_target_condition_number {
-                            condition.is_reporting_target = true;
-                        }
-                    });
+                    condition
+                        .content_conditions
+                        .iter_mut()
+                        .for_each(|content_condition| {
+                            if content_condition.number == reporting_target_condition_number {
+                                content_condition.is_reporting_target = true;
+                            }
+                        });
                 });
             });
 

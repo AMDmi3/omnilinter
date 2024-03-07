@@ -6,7 +6,7 @@ mod tests;
 
 use crate::config::Config;
 use crate::ruleset::Rule as RulesetRule;
-use crate::ruleset::{Glob, GlobCondition, Regex, RegexCondition};
+use crate::ruleset::{ConditionLogic, Glob, GlobCondition, Regex, RegexCondition};
 use pest::Parser;
 use std::collections::HashSet;
 use std::fs;
@@ -74,8 +74,12 @@ fn parse_regex_str(s: &str) -> Regex {
     Regex::new(&output).unwrap()
 }
 
-fn parse_regexes_condition(pair: pest::iterators::Pair<Rule>) -> RegexCondition {
+fn parse_regexes_condition(
+    pair: pest::iterators::Pair<Rule>,
+    logic: ConditionLogic,
+) -> RegexCondition {
     let mut cond: RegexCondition = Default::default();
+    cond.logic = logic;
     for item in pair.into_inner() {
         let item = item.as_str();
         if let Some(item) = item.strip_prefix('!') {
@@ -96,14 +100,16 @@ fn parse_files_condition(pair: pest::iterators::Pair<Rule>) -> GlobCondition {
                 condition = parse_globs_condition(item.into_inner().next().unwrap());
             }
             Rule::rule_directive_match => {
-                condition
-                    .match_
-                    .push(parse_regexes_condition(item.into_inner().next().unwrap()));
+                condition.content_conditions.push(parse_regexes_condition(
+                    item.into_inner().next().unwrap(),
+                    ConditionLogic::Positive,
+                ));
             }
             Rule::rule_directive_nomatch => {
-                condition
-                    .nomatch
-                    .push(parse_regexes_condition(item.into_inner().next().unwrap()));
+                condition.content_conditions.push(parse_regexes_condition(
+                    item.into_inner().next().unwrap(),
+                    ConditionLogic::Negative,
+                ));
             }
             _ => unreachable!(
                 "unexpected parser rule type in parse_files_condition {:#?}",

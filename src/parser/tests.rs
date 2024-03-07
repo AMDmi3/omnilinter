@@ -44,7 +44,7 @@ mod parse_regexp {
         let text = lines!["[]", "files *", "match /f o\to/"];
         let config = Config::from_str(text).unwrap();
         assert_eq!(
-            config.ruleset.rules[0].files[0].match_[0].patterns[0].as_str(),
+            config.ruleset.rules[0].files[0].content_conditions[0].patterns[0].as_str(),
             "f o\to"
         );
     }
@@ -61,11 +61,11 @@ mod parse_regexp {
         ];
         let config = Config::from_str(text).unwrap();
         assert_eq!(
-            config.ruleset.rules[0].files[0].match_[0].patterns[0].as_str(),
+            config.ruleset.rules[0].files[0].content_conditions[0].patterns[0].as_str(),
             "foo"
         );
         assert_eq!(
-            config.ruleset.rules[1].files[0].match_[0].patterns[0].as_str(),
+            config.ruleset.rules[1].files[0].content_conditions[0].patterns[0].as_str(),
             "foo"
         );
     }
@@ -74,7 +74,7 @@ mod parse_regexp {
     fn character_classes_support() {
         let text = lines!["[]", "files *", r"match /\\s+/"];
         let config = Config::from_str(text).unwrap();
-        assert!(config.ruleset.rules[0].files[0].match_[0].patterns[0].is_match(" \t"));
+        assert!(config.ruleset.rules[0].files[0].content_conditions[0].patterns[0].is_match(" \t"));
     }
 
     #[test]
@@ -83,7 +83,7 @@ mod parse_regexp {
         let text = lines!["[]", "files *", r"match /a\/b\\\\c/"];
         let config = Config::from_str(text).unwrap();
         assert_eq!(
-            config.ruleset.rules[0].files[0].match_[0].patterns[0].as_str(),
+            config.ruleset.rules[0].files[0].content_conditions[0].patterns[0].as_str(),
             r"a/b\\c"
         );
     }
