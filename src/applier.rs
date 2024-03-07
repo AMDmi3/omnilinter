@@ -20,12 +20,6 @@ fn check_regexes_condition(condition: &RegexCondition, line: &str) -> bool {
         && !condition.excludes.iter().any(|regex| regex.is_match(line))
 }
 
-#[derive(Default, Debug)]
-struct RuleRegexpMatchStatus {
-    pub match_conditions_passed: Vec<bool>,
-    pub matched_lines: Vec<usize>,
-}
-
 fn apply_content_rules(
     root: &Path,
     path: Rc<PathBuf>,
@@ -36,70 +30,51 @@ fn apply_content_rules(
     let file = File::open(root.join(path.as_path()))?;
     let reader = BufReader::new(file);
 
-    let mut local_condition_statuses: Vec<RuleRegexpMatchStatus> = (0..global_condition_statuses
-        .len())
-        .map(|_| Default::default())
-        .collect();
+    let mut content_condition_statuses: Vec<bool> = vec![false; global_condition_statuses.len()];
 
     for (line_number, line) in reader.lines().enumerate() {
         let line = line?;
 
-        rules_with_conditions.retain(|(_, condition)| {
-            let condition_status = &mut local_condition_statuses[condition.number];
-
+        rules_with_conditions.retain(|(rule, condition)| {
             if condition.nomatch.iter().any(|condition| {
                 check_regexes_condition(condition, &line) && !line.contains(IGNORE_MARKER)
             }) {
                 return false;
             }
 
-            if condition_status.match_conditions_passed.len() != condition.match_.len() {
-                condition_status.match_conditions_passed = vec![false; condition.match_.len()];
-            }
-
-            condition
-                .match_
-                .iter()
-                .zip(condition_status.match_conditions_passed.iter_mut())
-                .for_each(|(condition, is_matched)| {
-                    if condition.is_reporting_target {
-                        if check_regexes_condition(condition, &line)
-                            && !line.contains(IGNORE_MARKER)
-                        {
-                            *is_matched = true;
-                            condition_status.matched_lines.push(line_number);
-                        }
-                    } else if !*is_matched {
-                        *is_matched = check_regexes_condition(condition, &line)
-                            && !line.contains(IGNORE_MARKER);
+            condition.match_.iter().for_each(|condition| {
+                let is_matched = &mut content_condition_statuses[condition.number];
+                if condition.is_reporting_target {
+                    if check_regexes_condition(condition, &line) && !line.contains(IGNORE_MARKER) {
+                        *is_matched = true;
+                        global_rule_statuses[rule.number]
+                            .matched_lines
+                            .push((path.clone(), line_number));
                     }
-                });
+                } else if !*is_matched {
+                    *is_matched =
+                        check_regexes_condition(condition, &line) && !line.contains(IGNORE_MARKER);
+                }
+            });
             true
         });
     }
 
     rules_with_conditions.iter().for_each(|(rule, condition)| {
-        let condition_status = &local_condition_statuses[condition.number];
-
-        if !condition_status
-            .match_conditions_passed
+        if !condition
+            .match_
             .iter()
-            .all(|passed| *passed)
+            .all(|condition| content_condition_statuses[condition.number])
         {
             return;
         }
 
         global_condition_statuses[condition.number] = true;
 
-        let rule_status = &mut global_rule_statuses[rule.number];
-
         if condition.is_reporting_target {
-            rule_status.matched_files.push(path.clone());
-        }
-        if !condition_status.matched_lines.is_empty() {
-            for line_number in &condition_status.matched_lines {
-                rule_status.matched_lines.push((path.clone(), *line_number));
-            }
+            global_rule_statuses[rule.number]
+                .matched_files
+                .push(path.clone());
         }
     });
 
