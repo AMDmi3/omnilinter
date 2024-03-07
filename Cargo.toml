@@ -24,7 +24,7 @@ fxhash = "0.2.1"
 glob = "0.3.1"
 num_cpus = "1.16.0"
 pest = "2.7.7"
-pest_derive = "2.7.7"
+pest_derive = { version = "2.7.7", features = ["grammar-extras"] }
 regex = { version = "1.10.3", default-features = false, features = ["std", "unicode-perl"] }
 scoped_threadpool = "0.1.9"
 serde = { version = "1.0.196", features = ["derive"] }
