@@ -74,12 +74,7 @@ fn apply_content_rules(
     }
 
     rules_with_conditions.iter().for_each(|(rule, condition)| {
-        if !condition
-            .content_conditions
-            .iter()
-            .filter(|content_condition| content_condition.logic == ConditionLogic::Positive)
-            .all(|content_condition| local_condition_statuses[content_condition.number])
-        {
+        if !condition.are_all_positive_conditions_satisfied(&local_condition_statuses) {
             return;
         }
 
@@ -174,12 +169,7 @@ pub fn apply_ruleset<'a>(ruleset: &'a CompiledRuleset, root: &'a Path) -> MatchR
         HashMap::new();
 
     rules.retain(|rule| {
-        if !rule
-            .path_conditions
-            .iter()
-            .filter(|path_condition| path_condition.logic == ConditionLogic::Positive)
-            .all(|path_condition| files_condition_statuses[path_condition.number])
-        {
+        if !rule.are_all_positive_conditions_satisfied(&files_condition_statuses) {
             return false;
         }
 
@@ -208,15 +198,7 @@ pub fn apply_ruleset<'a>(ruleset: &'a CompiledRuleset, root: &'a Path) -> MatchR
     }
 
     rules.iter().for_each(|rule| {
-        if !rule
-            .path_conditions
-            .iter()
-            .filter(|path_condition| path_condition.logic == ConditionLogic::Positive)
-            .all(|path_condition| {
-                path_condition.content_conditions.is_empty()
-                    || files_condition_statuses[path_condition.number]
-            })
-        {
+        if !rule.are_all_positive_conditions_satisfied(&files_condition_statuses) {
             return;
         }
 

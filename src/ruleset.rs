@@ -84,6 +84,15 @@ pub struct GlobCondition {
     pub is_reporting_target: bool,
 }
 
+impl GlobCondition {
+    pub fn are_all_positive_conditions_satisfied(&self, mask: &[bool]) -> bool {
+        !self
+            .content_conditions
+            .iter()
+            .any(|condition| condition.logic == ConditionLogic::Positive && !mask[condition.number])
+    }
+}
+
 #[derive(Default, Debug)]
 pub struct RegexCondition {
     pub number: usize,
@@ -100,6 +109,15 @@ pub struct Rule {
     pub tags: HashSet<String>,
     pub path_conditions: Vec<GlobCondition>,
     pub is_reporting_target: bool,
+}
+
+impl Rule {
+    pub fn are_all_positive_conditions_satisfied(&self, mask: &[bool]) -> bool {
+        !self
+            .path_conditions
+            .iter()
+            .any(|condition| condition.logic == ConditionLogic::Positive && !mask[condition.number])
+    }
 }
 
 #[derive(Default, Debug)]
