@@ -44,7 +44,12 @@ fn parse_title(s: &str) -> String {
 }
 
 fn parse_regex_str(s: &str) -> Regex {
-    Regex::new(&s[1..s.len() - 1]).unwrap()
+    let framing_char_length = s
+        .chars()
+        .next()
+        .expect("framing characters presence is enforced by grammar")
+        .len_utf8();
+    Regex::new(&s[framing_char_length..s.len() - framing_char_length]).unwrap()
 }
 
 fn parse_regexes_condition(

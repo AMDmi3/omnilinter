@@ -129,6 +129,16 @@ mod parse_regexp {
             "foo"
         );
     }
+
+    #[test]
+    fn unicode_framing() {
+        let text = lines!["[]", "files *", "match 🚧foo🚧"];
+        let config = Config::from_str(text).unwrap();
+        assert_eq!(
+            config.ruleset.rules[0].path_conditions[0].content_conditions[0].patterns[0].as_str(),
+            "foo"
+        );
+    }
 }
 
 #[test]
