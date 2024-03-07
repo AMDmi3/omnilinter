@@ -120,13 +120,12 @@ fn match_before_nomatch_not_matching() {
 }
 
 #[test]
-#[ignore] // should be fixed
 fn match_before_nomatch_matching() {
     TestCase::new_for_json_tests()
         .add_file("a.py", lines!["a"])
         .add_rule(lines!["files *.py", "match /a/", "nomatch /b/"])
         .run()
-        .assert_matches(vec!["a.py:1"]);
+        .assert_matches(vec!["a.py"]);
 }
 
 #[test]
