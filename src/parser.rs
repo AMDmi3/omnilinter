@@ -22,8 +22,12 @@ fn parse_tags(pair: pest::iterators::Pair<Rule>) -> HashSet<String> {
         .collect()
 }
 
-fn parse_globs_condition(pair: pest::iterators::Pair<Rule>) -> GlobCondition {
+fn parse_globs_condition(
+    pair: pest::iterators::Pair<Rule>,
+    logic: ConditionLogic,
+) -> GlobCondition {
     let mut cond: GlobCondition = Default::default();
+    cond.logic = logic;
     for item in pair.into_inner() {
         let item = item.as_str();
         if let Some(item) = item.strip_prefix('!') {
@@ -97,7 +101,10 @@ fn parse_files_condition(pair: pest::iterators::Pair<Rule>) -> GlobCondition {
     for item in pair.into_inner() {
         match item.as_rule() {
             Rule::rule_directive_files_inner => {
-                condition = parse_globs_condition(item.into_inner().next().unwrap());
+                condition = parse_globs_condition(
+                    item.into_inner().next().unwrap(),
+                    ConditionLogic::Positive,
+                );
             }
             Rule::rule_directive_match => {
                 condition.content_conditions.push(parse_regexes_condition(
@@ -146,11 +153,13 @@ fn parse_rule(
             }
             Rule::rule_directive_tags => rule.tags = parse_tags(item.into_inner().next().unwrap()),
             Rule::rule_directive_files => {
-                rule.files.push(parse_files_condition(item));
+                rule.path_conditions.push(parse_files_condition(item));
             }
             Rule::rule_directive_nofiles => {
-                rule.nofiles
-                    .push(parse_globs_condition(item.into_inner().next().unwrap()));
+                rule.path_conditions.push(parse_globs_condition(
+                    item.into_inner().next().unwrap(),
+                    ConditionLogic::Negative,
+                ));
             }
             _ => unreachable!("unexpected parser rule type in parse_rule {:#?}", item),
         }

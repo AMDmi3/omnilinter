@@ -101,30 +101,16 @@ fn apply_content_rules(
 
 #[derive(Default, Debug)]
 struct RuleMatchStatus<'a> {
-    pub files_conditions_passed: Vec<bool>,
-
     pub content_checks: Vec<(&'a GlobCondition, Rc<PathBuf>)>,
-
     pub matched_files: Vec<Rc<PathBuf>>,
     pub matched_lines: Vec<(Rc<PathBuf>, usize)>,
-}
-
-impl<'a> RuleMatchStatus<'a> {
-    pub fn new(rule: &'a Rule) -> RuleMatchStatus<'a> {
-        RuleMatchStatus {
-            files_conditions_passed: vec![false; rule.files.len()],
-            content_checks: vec![],
-            matched_files: vec![],
-            matched_lines: vec![],
-        }
-    }
 }
 
 pub fn apply_ruleset<'a>(ruleset: &'a CompiledRuleset, root: &'a Path) -> MatchResult<'a> {
     let mut result: MatchResult = Default::default();
 
     let mut rule_statuses: Vec<RuleMatchStatus> =
-        ruleset.rules.iter().map(RuleMatchStatus::new).collect();
+        ruleset.rules.iter().map(|_| Default::default()).collect();
 
     let mut files_condition_statuses: Vec<bool> = vec![false; ruleset.conditions_count];
 
@@ -133,7 +119,7 @@ pub fn apply_ruleset<'a>(ruleset: &'a CompiledRuleset, root: &'a Path) -> MatchR
     rules.retain(|rule| {
         // NOTE: possible checks to tied to root's file hierarchy (such
         // as running a process on a whole root) may be implemented here
-        if rule.files.is_empty() && rule.nofiles.is_empty() {
+        if rule.path_conditions.is_empty() {
             // rules without any glob matchers always match on the root level
             result.matches.push(Match::for_root(rule, root));
             return false;
@@ -154,34 +140,35 @@ pub fn apply_ruleset<'a>(ruleset: &'a CompiledRuleset, root: &'a Path) -> MatchR
             let mut matching_cache = GlobMatchingCache::new(&path, match_options);
 
             rules.retain(|rule| {
-                if rule
-                    .nofiles
-                    .iter()
-                    .any(|condition| matching_cache.check_condition_match(condition))
-                {
-                    return false;
-                }
-
-                let rule_status = &mut rule_statuses[rule.number];
-
-                rule.files
-                    .iter()
-                    .zip(rule_status.files_conditions_passed.iter_mut())
-                    .for_each(|(condition, is_matched)| {
-                        if condition.is_reporting_target || !condition.content_conditions.is_empty()
-                        {
-                            if matching_cache.check_condition_match(condition) {
-                                *is_matched = true;
-                                if !condition.content_conditions.is_empty() {
-                                    rule_status.content_checks.push((condition, path.clone()));
-                                } else if condition.is_reporting_target {
-                                    rule_status.matched_files.push(path.clone());
-                                }
+                for path_condition in &rule.path_conditions {
+                    match path_condition.logic {
+                        ConditionLogic::Negative => {
+                            if matching_cache.check_condition_match(path_condition) {
+                                return false;
                             }
-                        } else if !*is_matched {
-                            *is_matched = matching_cache.check_condition_match(condition);
                         }
-                    });
+                        ConditionLogic::Positive => {
+                            let is_matched = &mut files_condition_statuses[path_condition.number];
+                            if path_condition.is_reporting_target
+                                || !path_condition.content_conditions.is_empty()
+                            {
+                                if matching_cache.check_condition_match(path_condition) {
+                                    *is_matched = true;
+                                    let rule_status = &mut rule_statuses[rule.number];
+                                    if !path_condition.content_conditions.is_empty() {
+                                        rule_status
+                                            .content_checks
+                                            .push((path_condition, path.clone()));
+                                    } else if path_condition.is_reporting_target {
+                                        rule_status.matched_files.push(path.clone());
+                                    }
+                                }
+                            } else if !*is_matched {
+                                *is_matched = matching_cache.check_condition_match(path_condition);
+                            }
+                        }
+                    }
+                }
 
                 true
             });
@@ -191,17 +178,19 @@ pub fn apply_ruleset<'a>(ruleset: &'a CompiledRuleset, root: &'a Path) -> MatchR
         HashMap::new();
 
     rules.retain(|rule| {
-        let rule_status = &mut rule_statuses[rule.number];
-
-        if !rule_status
-            .files_conditions_passed
+        if !rule
+            .path_conditions
             .iter()
-            .all(|passed| *passed)
+            .filter(|path_condition| path_condition.logic == ConditionLogic::Positive)
+            .all(|path_condition| files_condition_statuses[path_condition.number])
         {
             return false;
         }
 
+        let rule_status = &mut rule_statuses[rule.number];
+
         for (condition, path) in rule_status.content_checks.iter() {
+            files_condition_statuses[condition.number] = false;
             content_rules_by_path
                 .entry(path.clone())
                 .or_default()
@@ -223,9 +212,15 @@ pub fn apply_ruleset<'a>(ruleset: &'a CompiledRuleset, root: &'a Path) -> MatchR
     }
 
     rules.iter().for_each(|rule| {
-        if !rule.files.iter().all(|condition| {
-            condition.content_conditions.is_empty() || files_condition_statuses[condition.number]
-        }) {
+        if !rule
+            .path_conditions
+            .iter()
+            .filter(|path_condition| path_condition.logic == ConditionLogic::Positive)
+            .all(|path_condition| {
+                path_condition.content_conditions.is_empty()
+                    || files_condition_statuses[path_condition.number]
+            })
+        {
             return;
         }
 

@@ -77,6 +77,7 @@ pub enum ConditionLogic {
 #[derive(Default, Debug)]
 pub struct GlobCondition {
     pub number: usize,
+    pub logic: ConditionLogic,
     pub patterns: Vec<Glob>,
     pub excludes: Vec<Glob>,
     pub content_conditions: Vec<RegexCondition>,
@@ -97,8 +98,7 @@ pub struct Rule {
     pub number: usize,
     pub title: String,
     pub tags: HashSet<String>,
-    pub files: Vec<GlobCondition>,
-    pub nofiles: Vec<GlobCondition>,
+    pub path_conditions: Vec<GlobCondition>,
     pub is_reporting_target: bool,
 }
 
@@ -125,6 +125,42 @@ impl Ruleset {
         })
     }
 
+    fn set_reporting_target(rule: &mut Rule) {
+        if let Some(last_path_condition) = rule.path_conditions.last_mut() {
+            if let Some(last_content_condition) = last_path_condition.content_conditions.last_mut()
+            {
+                if last_content_condition.logic == ConditionLogic::Positive {
+                    last_content_condition.is_reporting_target = true;
+                    return;
+                }
+            }
+            if last_path_condition.logic == ConditionLogic::Positive {
+                last_path_condition.is_reporting_target = true;
+                return;
+            }
+        }
+        rule.is_reporting_target = true;
+    }
+
+    fn enumerate_conditions(rule: &mut Rule, counter: &mut usize) {
+        let mut count = || {
+            let prev = *counter;
+            *counter += 1;
+            prev
+        };
+
+        rule.path_conditions.iter_mut().for_each(|path_condition| {
+            path_condition.number = count();
+
+            path_condition
+                .content_conditions
+                .iter_mut()
+                .for_each(|content_condition| {
+                    content_condition.number = count();
+                });
+        });
+    }
+
     pub fn compile(self) -> CompiledRuleset {
         let mut rules = self.rules;
         let mut conditions_count: usize = 0;
@@ -134,65 +170,8 @@ impl Ruleset {
             .enumerate()
             .for_each(|(rule_number, rule)| {
                 rule.number = rule_number;
-
-                let mut last_glob_cond: Option<usize> = None;
-                let mut last_files_cond: Option<usize> = None;
-                let mut last_match_cond: Option<usize> = None;
-
-                rule.files.iter_mut().for_each(|condition| {
-                    condition.number = conditions_count;
-                    last_glob_cond = Some(conditions_count);
-                    last_files_cond = Some(conditions_count);
-                    conditions_count += 1;
-
-                    condition
-                        .content_conditions
-                        .iter_mut()
-                        .for_each(|content_condition| {
-                            content_condition.number = conditions_count;
-                            if content_condition.logic == ConditionLogic::Positive {
-                                last_match_cond = Some(conditions_count);
-                            }
-                            conditions_count += 1;
-                        });
-                });
-                rule.nofiles.iter_mut().for_each(|condition| {
-                    condition.number = conditions_count;
-                    last_glob_cond = Some(conditions_count);
-                    conditions_count += 1;
-                });
-
-                let reporting_target_condition_number = if let Some(last_match_cond) =
-                    last_match_cond
-                    && last_match_cond == conditions_count - 1
-                {
-                    // match which is the last condition
-                    last_match_cond
-                } else if let (Some(last_files_cond), Some(last_glob_cond)) =
-                    (last_files_cond, last_glob_cond)
-                    && last_files_cond == last_glob_cond
-                {
-                    // files which is the last glob condition
-                    last_glob_cond
-                } else {
-                    // otherwise reports at root level
-                    rule.is_reporting_target = true;
-                    return;
-                };
-
-                rule.files.iter_mut().for_each(|condition| {
-                    if condition.number == reporting_target_condition_number {
-                        condition.is_reporting_target = true;
-                    }
-                    condition
-                        .content_conditions
-                        .iter_mut()
-                        .for_each(|content_condition| {
-                            if content_condition.number == reporting_target_condition_number {
-                                content_condition.is_reporting_target = true;
-                            }
-                        });
-                });
+                Self::enumerate_conditions(rule, &mut conditions_count);
+                Self::set_reporting_target(rule);
             });
 
         CompiledRuleset {
