@@ -18,6 +18,7 @@ const IGNORE_MARKER: &str = "omnilinter: ignore";
 fn check_regexes_condition(condition: &RegexCondition, line: &str) -> bool {
     condition.patterns.iter().any(|regex| regex.is_match(line))
         && !condition.excludes.iter().any(|regex| regex.is_match(line))
+        && !line.contains(IGNORE_MARKER)
 }
 
 fn apply_content_rules(
@@ -40,18 +41,14 @@ fn apply_content_rules(
             for content_condition in &path_condition.content_conditions {
                 match content_condition.logic {
                     ConditionLogic::Negative => {
-                        if check_regexes_condition(content_condition, &line)
-                            && !line.contains(IGNORE_MARKER)
-                        {
+                        if check_regexes_condition(content_condition, &line) {
                             return false;
                         }
                     }
                     ConditionLogic::Positive => {
                         let is_matched = &mut local_condition_statuses[content_condition.number];
                         if content_condition.is_reporting_target {
-                            if check_regexes_condition(content_condition, &line)
-                                && !line.contains(IGNORE_MARKER)
-                            {
+                            if check_regexes_condition(content_condition, &line) {
                                 *is_matched = true;
                                 global_rule_statuses[rule.number]
                                     .matched_lines
@@ -59,7 +56,6 @@ fn apply_content_rules(
                             }
                         } else if !*is_matched {
                             *is_matched = check_regexes_condition(content_condition, &line)
-                                && !line.contains(IGNORE_MARKER);
                         } else {
                             num_satisfied_content_conditions += 1;
                         }
