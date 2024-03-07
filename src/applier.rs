@@ -36,6 +36,7 @@ fn apply_content_rules(
         let line = line?;
 
         rules_with_conditions.retain(|(rule, path_condition)| {
+            let mut num_satisfied_content_conditions = 0;
             for content_condition in &path_condition.content_conditions {
                 match content_condition.logic {
                     ConditionLogic::Negative => {
@@ -59,12 +60,21 @@ fn apply_content_rules(
                         } else if !*is_matched {
                             *is_matched = check_regexes_condition(content_condition, &line)
                                 && !line.contains(IGNORE_MARKER);
+                        } else {
+                            num_satisfied_content_conditions += 1;
                         }
                     }
                 }
             }
-            true
+
+            // we don't need to do any more checks if all conditions are already satisfied
+            num_satisfied_content_conditions != path_condition.content_conditions.len()
         });
+
+        // interrupt processing this file if all condition statuses are already known
+        if rules_with_conditions.is_empty() {
+            break;
+        }
     }
 
     rules_with_conditions.iter().for_each(|(rule, condition)| {
