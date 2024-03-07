@@ -40,7 +40,7 @@ regexp_char = {
 	!("\n" | "\r" | PEEK) ~ ANY
 }
 simple_regexp = @{
-	PUSH(!("\n" | "\r" | " " | "\t") ~ ANY) ~
+	PUSH(!("\n" | "\r" | " " | "\t" | "(" | ")" | "[" | "]" | "{" | "}" | "<" | ">" | "«" | "»") ~ ANY) ~
 	regexp_char+ ~
 	POP
 }

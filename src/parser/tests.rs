@@ -118,6 +118,17 @@ mod parse_regexp {
         let text = lines!["[]", "files *", r"match /foo/bar/"];
         Config::from_str(text).unwrap();
     }
+
+    #[test]
+    #[ignore] // TODO: not implemented yet
+    fn paired_framing_characters() {
+        let text = lines!["[]", "files *", "match (foo)"];
+        let config = Config::from_str(text).unwrap();
+        assert_eq!(
+            config.ruleset.rules[0].path_conditions[0].content_conditions[0].patterns[0].as_str(),
+            "foo"
+        );
+    }
 }
 
 #[test]
