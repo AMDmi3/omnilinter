@@ -15,7 +15,7 @@ mod tags {
             .add_file("b.py", "")
             .add_arg("--tags=MYTAG")
             .add_rule("files a.py")
-            .add_rule("tags MYTAG\nfiles b.py")
+            .add_rule(lines!["tags MYTAG", "files b.py"])
             .run()
             .assert_matches(vec!["b.py"]);
     }
@@ -27,7 +27,7 @@ mod tags {
             .add_file("b.py", "")
             .add_arg("--skip-tags=MYTAG")
             .add_rule("files a.py")
-            .add_rule("tags MYTAG\nfiles b.py")
+            .add_rule(lines!["tags MYTAG", "files b.py"])
             .run()
             .assert_matches(vec!["a.py"]);
     }
@@ -63,8 +63,8 @@ mod stdout {
     #[test]
     fn simple() {
         TestCase::new_for_stdout_tests()
-            .add_file("a.py", "b\na")
-            .add_rule("files *.py\nmatch /a/")
+            .add_file("a.py", lines!["b", "a"])
+            .add_rule(lines!["files *.py", "match /a/"])
             .run()
             .assert_stdout_contains("a.py:2");
     }

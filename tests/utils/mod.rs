@@ -14,6 +14,15 @@ use std::process::Command;
 use std::str::from_utf8;
 use tempdir::TempDir;
 
+#[macro_export]
+macro_rules! lines {
+    ($($s:expr),+) => {{
+        concat!(
+            $($s,'\n',)+
+        )
+    }};
+}
+
 #[derive(Deserialize)]
 pub struct Match {
     message: String,

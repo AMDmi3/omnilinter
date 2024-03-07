@@ -136,7 +136,7 @@ fn files_before_nofiles() {
     TestCase::new_for_json_tests()
         .add_file("a.py", "")
         .add_file("b.py", "")
-        .add_rule("files a.py\nnofiles b.py\n")
+        .add_rule(lines!["files a.py", "nofiles b.py"])
         .run()
         .assert_matches(vec![]);
 }
@@ -146,7 +146,7 @@ fn files_with_content_before_nofiles() {
     TestCase::new_for_json_tests()
         .add_file("a.py", "a")
         .add_file("b.py", "")
-        .add_rule("files a.py\nmatch /a/\nnofiles b.py\n")
+        .add_rule(lines!["files a.py", "match /a/", "nofiles b.py"])
         .run()
         .assert_matches(vec![]);
 }
@@ -156,7 +156,7 @@ fn files_after_files_order_a() {
     TestCase::new_for_json_tests()
         .add_file("a.py", "")
         .add_file("b.py", "")
-        .add_rule("files a.py\nfiles b.py\n")
+        .add_rule(lines!["files a.py", "files b.py"])
         .run()
         .assert_matches(vec!["b.py"]);
 }
@@ -166,7 +166,7 @@ fn files_after_files_order_b() {
     TestCase::new_for_json_tests()
         .add_file("b.py", "")
         .add_file("a.py", "")
-        .add_rule("files a.py\nfiles b.py\n")
+        .add_rule(lines!["files a.py", "files b.py"])
         .run()
         .assert_matches(vec!["b.py"]);
 }
