@@ -129,3 +129,14 @@ fn nomatch_after_match_d() {
         .run()
         .assert_matches(vec![]);
 }
+
+#[test]
+fn multiple_matches_in_same_file() {
+    TestCase::new_for_json_tests()
+        .add_file("a", lines!["b", "a"])
+        .add_file("b", lines!["a", "b"])
+        .add_file("c", lines!["b"])
+        .add_rule(lines!["files *", "match /^a/", "match /^b/"])
+        .run()
+        .assert_matches(vec!["a:1", "b:2"]); // not c:1!!! because it does not have "a" match
+}

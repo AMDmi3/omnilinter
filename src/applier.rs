@@ -26,13 +26,14 @@ fn apply_content_rules(
     let reader = BufReader::new(file);
 
     let mut local_condition_statuses: Vec<bool> = vec![false; global_condition_statuses.len()];
+    let mut matched_lines: Vec<usize> = vec![];
 
     for (line_number, line) in reader.lines().enumerate() {
         let line = line?;
 
         let mut matching_cache = RegexMatchingCache::new(&line, ruleset.regexes_count);
 
-        rules_with_conditions.retain(|(rule, path_condition)| {
+        rules_with_conditions.retain(|(_, path_condition)| {
             let mut num_satisfied_content_conditions = 0;
             for content_condition in &path_condition.content_conditions {
                 match content_condition.logic {
@@ -46,9 +47,7 @@ fn apply_content_rules(
                         if content_condition.is_reporting_target {
                             if matching_cache.check_condition_match(content_condition) {
                                 *is_matched = true;
-                                global_rule_statuses[rule.number]
-                                    .matched_lines
-                                    .push((path.clone(), line_number));
+                                matched_lines.push(line_number);
                             }
                         } else if !*is_matched {
                             *is_matched = matching_cache.check_condition_match(content_condition);
@@ -75,6 +74,11 @@ fn apply_content_rules(
         }
 
         global_condition_statuses[condition.number] = true;
+        global_rule_statuses[rule.number].matched_lines.extend(
+            matched_lines
+                .iter()
+                .map(|line_number| (path.clone(), *line_number)),
+        );
 
         if condition.is_reporting_target {
             global_rule_statuses[rule.number]
