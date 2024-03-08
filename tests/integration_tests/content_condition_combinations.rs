@@ -140,7 +140,7 @@ fn nomatch_after_match_d() {
 }
 
 #[test]
-fn multiple_matches_in_same_file() {
+fn multiple_matches_in_same_file_bug() {
     TestCase::new_for_json_tests()
         .add_file("a", lines!["b", "a"])
         .add_file("b", lines!["a", "b"])
