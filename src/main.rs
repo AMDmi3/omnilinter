@@ -131,11 +131,21 @@ fn main() {
         eprintln!("Warning: ruleset is empty");
     }
 
-    let roots = if args.roots.is_empty() {
+    let roots: Vec<_> = if args.roots.is_empty() {
         config.roots
     } else {
         args.roots
-    };
+    }
+    .into_iter()
+    .filter(|path| {
+        if path.is_dir() {
+            true
+        } else {
+            eprintln!("Skipping non-directory root {}", path.display());
+            false
+        }
+    })
+    .collect();
 
     config.ruleset.filter_by_tags(
         &HashSet::from_iter(args.required_tags.iter().map(|tag| tag.to_lowercase())),
