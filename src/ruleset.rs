@@ -3,7 +3,6 @@
 
 pub mod compile;
 
-pub use regex::Regex;
 use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
 use std::path::Path;
@@ -70,6 +69,27 @@ impl Glob {
 
     pub fn as_str(&self) -> &str {
         self.pattern.as_str()
+    }
+}
+
+#[derive(Debug)]
+pub struct Regex {
+    regex: regex::Regex,
+}
+
+impl Regex {
+    pub fn new(re: &str) -> Result<Self, regex::Error> {
+        Ok(Self {
+            regex: regex::Regex::new(re)?,
+        })
+    }
+
+    pub fn is_match(&self, haystack: &str) -> bool {
+        self.regex.is_match(haystack)
+    }
+
+    pub fn as_str(&self) -> &str {
+        self.regex.as_str()
     }
 }
 
