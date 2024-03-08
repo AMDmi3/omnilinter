@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: Copyright 2024 Dmitry Marakasov <amdmi3@amdmi3.ru>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-mod glob_cache;
+mod matching_caches;
 
 use crate::r#match::{Match, MatchResult};
 use crate::ruleset::compile::CompiledRuleset;
-use crate::ruleset::{ConditionLogic, GlobCondition, RegexCondition, Rule};
-use glob_cache::GlobMatchingCache;
+use crate::ruleset::{ConditionLogic, GlobCondition, Rule};
+use matching_caches::{GlobMatchingCache, RegexMatchingCache};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
@@ -14,15 +14,8 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use walkdir::WalkDir;
 
-const IGNORE_MARKER: &str = "omnilinter: ignore";
-
-fn check_regexes_condition(condition: &RegexCondition, line: &str) -> bool {
-    condition.patterns.iter().any(|regex| regex.is_match(line))
-        && !condition.excludes.iter().any(|regex| regex.is_match(line))
-        && !line.contains(IGNORE_MARKER)
-}
-
 fn apply_content_rules(
+    ruleset: &CompiledRuleset,
     root: &Path,
     path: Rc<PathBuf>,
     mut rules_with_conditions: Vec<(&Rule, &GlobCondition)>,
@@ -37,26 +30,28 @@ fn apply_content_rules(
     for (line_number, line) in reader.lines().enumerate() {
         let line = line?;
 
+        let mut matching_cache = RegexMatchingCache::new(&line, ruleset.regexes_count);
+
         rules_with_conditions.retain(|(rule, path_condition)| {
             let mut num_satisfied_content_conditions = 0;
             for content_condition in &path_condition.content_conditions {
                 match content_condition.logic {
                     ConditionLogic::Negative => {
-                        if check_regexes_condition(content_condition, &line) {
+                        if matching_cache.check_condition_match(content_condition) {
                             return false;
                         }
                     }
                     ConditionLogic::Positive => {
                         let is_matched = &mut local_condition_statuses[content_condition.number];
                         if content_condition.is_reporting_target {
-                            if check_regexes_condition(content_condition, &line) {
+                            if matching_cache.check_condition_match(content_condition) {
                                 *is_matched = true;
                                 global_rule_statuses[rule.number]
                                     .matched_lines
                                     .push((path.clone(), line_number));
                             }
                         } else if !*is_matched {
-                            *is_matched = check_regexes_condition(content_condition, &line)
+                            *is_matched = matching_cache.check_condition_match(content_condition);
                         } else {
                             num_satisfied_content_conditions += 1;
                         }
@@ -129,7 +124,8 @@ pub fn apply_ruleset<'a>(ruleset: &'a CompiledRuleset, root: &'a Path) -> MatchR
         .filter(|e| e.file_type().is_file())
         .map(|e| Rc::new(e.into_path().strip_prefix(root).unwrap().to_path_buf()))
         .for_each(|path| {
-            let mut matching_cache = GlobMatchingCache::new(&path, match_options);
+            let mut matching_cache =
+                GlobMatchingCache::new(&path, match_options, ruleset.globs_count);
 
             rules.retain(|rule| {
                 for path_condition in &rule.path_conditions {
@@ -188,6 +184,7 @@ pub fn apply_ruleset<'a>(ruleset: &'a CompiledRuleset, root: &'a Path) -> MatchR
 
     for (path, rules_with_conditions) in content_rules_by_path.into_iter() {
         if let Err(err) = apply_content_rules(
+            ruleset,
             root,
             path.clone(),
             rules_with_conditions,

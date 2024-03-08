@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 pub mod compile;
+pub mod enumerator;
 
+use crate::ruleset::enumerator::Enumerator;
 use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
 use std::path::Path;
@@ -16,6 +18,7 @@ enum GlobScope {
 pub struct Glob {
     pattern: glob::Pattern,
     scope: GlobScope,
+    unique_id: usize,
 }
 
 impl Hash for Glob {
@@ -51,6 +54,7 @@ impl Glob {
             } else {
                 GlobScope::Filenames
             },
+            unique_id: usize::MAX,
         })
     }
 
@@ -70,17 +74,28 @@ impl Glob {
     pub fn as_str(&self) -> &str {
         self.pattern.as_str()
     }
+
+    pub fn enumerate_with(&mut self, enumerator: &mut Enumerator) {
+        self.unique_id = enumerator.get_id(self.pattern.as_str());
+    }
+
+    pub fn get_unique_id(&self) -> usize {
+        debug_assert!(self.unique_id != usize::MAX, "Glob is not enumerated");
+        self.unique_id
+    }
 }
 
 #[derive(Debug)]
 pub struct Regex {
     regex: regex::Regex,
+    unique_id: usize,
 }
 
 impl Regex {
     pub fn new(re: &str) -> Result<Self, regex::Error> {
         Ok(Self {
             regex: regex::Regex::new(re)?,
+            unique_id: usize::MAX,
         })
     }
 
@@ -90,6 +105,15 @@ impl Regex {
 
     pub fn as_str(&self) -> &str {
         self.regex.as_str()
+    }
+
+    pub fn enumerate_with(&mut self, enumerator: &mut Enumerator) {
+        self.unique_id = enumerator.get_id(self.regex.as_str());
+    }
+
+    pub fn get_unique_id(&self) -> usize {
+        debug_assert!(self.unique_id != usize::MAX, "Regex is not enumerated");
+        self.unique_id
     }
 }
 
