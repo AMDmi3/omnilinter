@@ -20,13 +20,17 @@ impl<'a> GlobMatchingCache<'a> {
     }
 
     pub fn check_pattern_match(&mut self, glob: &Glob) -> bool {
-        let cached = &mut self.cached_matches[glob.get_unique_id()];
-        if let Some(cached) = &cached {
-            *cached
+        if cfg!(feature = "matching-cache") {
+            let cached = &mut self.cached_matches[glob.get_unique_id()];
+            if let Some(cached) = &cached {
+                *cached
+            } else {
+                let computed = glob.matches_path_with(self.path, self.match_options);
+                *cached = Some(computed);
+                computed
+            }
         } else {
-            let computed = glob.matches_path_with(self.path, self.match_options);
-            *cached = Some(computed);
-            computed
+            glob.matches_path_with(self.path, self.match_options)
         }
     }
 
@@ -58,24 +62,32 @@ impl<'a> RegexMatchingCache<'a> {
     }
 
     pub fn check_pattern_match(&mut self, regex: &Regex) -> bool {
-        let cached = &mut self.cached_matches[regex.get_unique_id() + 1];
-        if let Some(cached) = &cached {
-            *cached
+        if cfg!(feature = "matching-cache") {
+            let cached = &mut self.cached_matches[regex.get_unique_id() + 1];
+            if let Some(cached) = &cached {
+                *cached
+            } else {
+                let computed = regex.is_match(self.line);
+                *cached = Some(computed);
+                computed
+            }
         } else {
-            let computed = regex.is_match(self.line);
-            *cached = Some(computed);
-            computed
+            regex.is_match(self.line)
         }
     }
 
     pub fn check_ignore_marker_match(&mut self) -> bool {
-        let cached = &mut self.cached_matches[0];
-        if let Some(cached) = &cached {
-            *cached
+        if cfg!(feature = "matching-cache") {
+            let cached = &mut self.cached_matches[0];
+            if let Some(cached) = &cached {
+                *cached
+            } else {
+                let computed = self.line.contains(IGNORE_MARKER);
+                *cached = Some(computed);
+                computed
+            }
         } else {
-            let computed = self.line.contains(IGNORE_MARKER);
-            *cached = Some(computed);
-            computed
+            self.line.contains(IGNORE_MARKER)
         }
     }
 
