@@ -56,11 +56,16 @@ struct Args {
     config_paths: Vec<PathBuf>,
 
     /// Only process rules tagged with these values
-    #[arg(short = 't', long = "tags", value_name = "TAGS")]
+    #[arg(
+        short = 't',
+        long = "tags",
+        value_name = "TAG[,...]",
+        value_delimiter = ','
+    )]
     required_tags: Vec<String>,
 
     /// Ignore rules tagged with these values
-    #[arg(long = "skip-tags", value_name = "TAGS")]
+    #[arg(long = "skip-tags", value_name = "TAG[,...]", value_delimiter = ',')]
     ignored_tags: Vec<String>,
 
     /// Output format
