@@ -14,10 +14,8 @@ use crate::formatters::json as format_json;
 use crate::formatters::text as format_text;
 use crate::r#match::MatchResult;
 use clap::{Parser, ValueEnum};
-use scoped_threadpool::Pool as ThreadPool;
 use std::collections::HashSet;
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
 
 const CONFIG_FILE_NAME: &str = "omnilinter.conf";
 
@@ -147,23 +145,38 @@ fn main() {
     let ruleset = config.ruleset.compile();
 
     let result = {
-        let result = Arc::new(Mutex::new(MatchResult::new()));
+        #[cfg(feature = "multithreading")]
+        {
+            use scoped_threadpool::Pool as ThreadPool;
+            use std::sync::{Arc, Mutex};
 
-        let num_threads = args.num_threads.unwrap_or_else(num_cpus::get);
-        let mut pool = ThreadPool::new(num_threads.try_into().unwrap_or(1));
+            let result = Arc::new(Mutex::new(MatchResult::new()));
 
-        pool.scoped(|scope| {
-            let ruleset = &ruleset;
+            let num_threads = args.num_threads.unwrap_or_else(num_cpus::get);
+            let mut pool = ThreadPool::new(num_threads.try_into().unwrap_or(1));
+
+            pool.scoped(|scope| {
+                let ruleset = &ruleset;
+                for root in &roots {
+                    let result = result.clone();
+                    scope.execute(move || {
+                        let res = apply_ruleset(ruleset, root);
+                        result.lock().unwrap().append(res);
+                    });
+                }
+            });
+
+            Arc::into_inner(result).unwrap().into_inner().unwrap()
+        }
+        #[cfg(not(feature = "multithreading"))]
+        {
+            let mut result = MatchResult::new();
             for root in &roots {
-                let result = result.clone();
-                scope.execute(move || {
-                    let res = apply_ruleset(ruleset, root);
-                    result.lock().unwrap().append(res);
-                });
+                result.append(apply_ruleset(&ruleset, root));
             }
-        });
 
-        Arc::into_inner(result).unwrap().into_inner().unwrap()
+            result
+        }
     };
 
     match args.output_format {
