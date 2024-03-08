@@ -4,7 +4,8 @@
 mod glob_cache;
 
 use crate::r#match::{Match, MatchResult};
-use crate::ruleset::{CompiledRuleset, ConditionLogic, GlobCondition, RegexCondition, Rule};
+use crate::ruleset::compile::CompiledRuleset;
+use crate::ruleset::{ConditionLogic, GlobCondition, RegexCondition, Rule};
 use glob_cache::GlobMatchingCache;
 use std::collections::HashMap;
 use std::fs::File;
