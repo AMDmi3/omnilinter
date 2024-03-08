@@ -3,13 +3,14 @@ on: [ push, pull_request ]
 jobs:
   build:
     runs-on: ubuntu-latest
-    continue-on-error: ${{ !matrix.required }}
     strategy:
       matrix:
         include:
-          - { rust: "1.74", required: true }
-          - { rust: stable, required: true }
-          - { rust: nightly, required: true }
+          - { name: "Rust 1.74",   rust: "1.74",  cargo_args: "" }
+          - { name: "Rust stable", rust: stable,  cargo_args: "" }
+          - { name: "Rust nighly", rust: nightly, cargo_args: "" }
+          - { name: "Rust nighly, no-default-features", rust: nightly, cargo_args: "--no-default-features" }
+    name: ${{ matrix.name }}
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@master
@@ -17,17 +18,17 @@ jobs:
           toolchain: ${{ matrix.rust }}
           components: rustfmt
       - name: Build
-        run: cargo build
+        run: cargo build ${{ matrix.cargo_args }}
         env:
           RUSTFLAGS: -Dwarnings
       - name: Test
-        run: cargo test
+        run: cargo test ${{ matrix.cargo_args }}
       - name: Format check
         run: cargo fmt --check
       - name: Run omnilinter on its own repository (all checks)
-        run: cargo run --quiet -- --color always --format=by-rule --config .omnilinter.conf .
+        run: cargo --quiet run ${{ matrix.cargo_args }} -- --color always --format=by-rule --config .omnilinter.conf .
       - name: Run omnilinter on its own repository (fatal checks)
-        run: cargo run --quiet -- --color always --format=by-rule --config .omnilinter.conf --error-exitcode 1 --tags fatal .
+        run: cargo --quiet run ${{ matrix.cargo_args }} -- --color always --format=by-rule --config .omnilinter.conf --error-exitcode 1 --tags fatal .
 
   coverage:
     runs-on: ubuntu-latest
