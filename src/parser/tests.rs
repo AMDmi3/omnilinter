@@ -139,6 +139,16 @@ mod parse_regexp {
             "foo"
         );
     }
+
+    #[test]
+    fn exclude() {
+        let text = lines!["[]", "files *", r"match /\s+/ !/abc/"];
+        let config = Config::from_str(text).unwrap();
+        assert_eq!(
+            config.ruleset.rules[0].path_conditions[0].content_conditions[0].excludes[0].as_str(),
+            "abc"
+        );
+    }
 }
 
 #[test]

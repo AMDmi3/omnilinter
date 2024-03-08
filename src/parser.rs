@@ -61,7 +61,7 @@ fn parse_regexes_condition(
     for item in pair.into_inner() {
         let item = item.as_str();
         if let Some(item) = item.strip_prefix('!') {
-            cond.excludes.push(parse_regex_str(&item[1..]));
+            cond.excludes.push(parse_regex_str(item));
         } else {
             cond.patterns.push(parse_regex_str(item));
         }
