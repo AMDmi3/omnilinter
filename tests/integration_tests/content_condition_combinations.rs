@@ -32,6 +32,15 @@ fn multiple_match_not_all_match_b() {
 }
 
 #[test]
+fn multiple_match_shared() {
+    TestCase::new_for_json_tests()
+        .add_file("a", lines!["a", "b"])
+        .add_rule(lines!["files a", "match /./", "match /./"])
+        .run()
+        .assert_matches(vec!["a:1", "a:2"]);
+}
+
+#[test]
 fn multiple_nomatch_none_match() {
     TestCase::new_for_json_tests()
         .add_file("a", lines!["not_a", "not_b"])

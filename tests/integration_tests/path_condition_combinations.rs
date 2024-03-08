@@ -33,6 +33,16 @@ fn multiple_files_not_all_match_b() {
 }
 
 #[test]
+fn multiple_files_shared() {
+    TestCase::new_for_json_tests()
+        .add_file("a", "")
+        .add_file("b", "")
+        .add_rule(lines!["files *", "files *"])
+        .run()
+        .assert_matches(vec!["a", "b"]);
+}
+
+#[test]
 fn multiple_nofiles_none_match() {
     TestCase::new_for_json_tests()
         .add_file("not_a", "")
