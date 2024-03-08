@@ -3,10 +3,8 @@
 
 mod applier;
 mod config;
-mod dumper;
 mod formatters;
 mod r#match;
-mod parser;
 mod ruleset;
 
 use crate::applier::apply_ruleset;

@@ -13,7 +13,7 @@ use std::fs;
 use std::path::Path;
 
 #[derive(pest_derive::Parser)]
-#[grammar = "parser/omnilinter.pest"]
+#[grammar = "config/parser/omnilinter.pest"]
 pub struct ConfigParser;
 
 fn parse_tags(pair: pest::iterators::Pair<Rule>) -> HashSet<String> {
