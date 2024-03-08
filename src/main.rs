@@ -142,8 +142,8 @@ fn main() {
     };
 
     config.ruleset.filter_by_tags(
-        &HashSet::from_iter(args.required_tags),
-        &HashSet::from_iter(args.ignored_tags),
+        &HashSet::from_iter(args.required_tags.iter().map(|tag| tag.to_lowercase())),
+        &HashSet::from_iter(args.ignored_tags.iter().map(|tag| tag.to_lowercase())),
     );
 
     let ruleset = config.ruleset.compile();

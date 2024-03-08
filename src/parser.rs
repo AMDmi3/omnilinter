@@ -18,7 +18,7 @@ pub struct ConfigParser;
 
 fn parse_tags(pair: pest::iterators::Pair<Rule>) -> HashSet<String> {
     pair.into_inner()
-        .map(|tag| tag.as_str().to_string())
+        .map(|tag| tag.as_str().to_lowercase())
         .collect()
 }
 

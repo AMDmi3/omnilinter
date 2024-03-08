@@ -29,14 +29,16 @@ fn skipped() {
 }
 
 #[test]
-#[ignore] // TODO, issue 45
-fn lowercase() {
+fn case_insensitive() {
     TestCase::new_for_json_tests()
-        .add_file("a.py", "")
-        .add_file("b.py", "")
         .add_arg("--tags=mytag")
-        .add_rule("files a.py")
-        .add_rule(lines!["tags MYTAG", "files b.py"])
+        .add_rule(lines!["tags MYTAG"])
         .run()
-        .assert_matches(vec!["b.py"]);
+        .assert_matches(vec![""]);
+
+    TestCase::new_for_json_tests()
+        .add_arg("--tags=MYTAG")
+        .add_rule(lines!["tags mytag"])
+        .run()
+        .assert_matches(vec![""]);
 }
