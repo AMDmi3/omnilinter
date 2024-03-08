@@ -5,6 +5,7 @@
 
 mod applier;
 mod config;
+mod dumper;
 mod formatters;
 mod r#match;
 mod parser;
@@ -84,6 +85,10 @@ struct Args {
     #[arg(short = 'j', long = "jobs", value_name = "JOBS")]
     num_threads: Option<usize>,
 
+    /// Parse and dump specified config, do nothing else
+    #[arg(long = "dump-config", value_name = "CONFIG_PATH")]
+    config_to_dump: Option<PathBuf>,
+
     /// Directories to operate on
     #[arg(value_name = "TARGET_DIR")]
     roots: Vec<PathBuf>,
@@ -91,6 +96,11 @@ struct Args {
 
 fn main() {
     let args = Args::parse();
+
+    if let Some(config_to_dump) = args.config_to_dump {
+        Config::from_file(&config_to_dump).unwrap().dump();
+        return;
+    }
 
     match args.color_mode {
         ColorMode::Always => colored::control::set_override(true),

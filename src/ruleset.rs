@@ -65,6 +65,10 @@ impl Glob {
             options,
         )
     }
+
+    pub fn as_str(&self) -> &str {
+        self.pattern.as_str()
+    }
 }
 
 #[derive(Default, Debug, PartialEq, Eq)]
