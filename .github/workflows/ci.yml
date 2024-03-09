@@ -10,6 +10,7 @@ jobs:
           - { name: "Rust stable", rust: stable,  cargo_args: "" }
           - { name: "Rust nighly", rust: nightly, cargo_args: "" }
           - { name: "Rust nighly, no-default-features", rust: nightly, cargo_args: "--no-default-features" }
+      fail-fast: false
     name: ${{ matrix.name }}
     steps:
       - uses: actions/checkout@v4
