@@ -8,7 +8,7 @@
   - Don't use backslash escaping in rule titles, literal `]` may now be
     written as `]]`
   - Don't use backslash escaping in regexps - it's not really needed as
-    (almost) any framing charactes are allowed
+    (almost) any framing characters are allowed
   - Support unicode framing characters in regexps
   - Disallow brackets as regexp framing characters to avoid confusion
 - Implement parsed config dumping (may be useful in future for config
