@@ -33,6 +33,7 @@ jobs:
   coverage:
     runs-on: ubuntu-latest
     if: ${{ github.actor != 'dependabot[bot]' }}
+    name: Coverage
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@master
