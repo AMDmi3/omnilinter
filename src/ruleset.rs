@@ -79,6 +79,7 @@ impl Glob {
         self.unique_id = enumerator.get_id(self.pattern.as_str());
     }
 
+    #[cfg_attr(not(feature = "matching-cache"), allow(dead_code))]
     pub fn get_unique_id(&self) -> usize {
         debug_assert!(self.unique_id != usize::MAX, "Glob is not enumerated");
         self.unique_id
@@ -111,6 +112,7 @@ impl Regex {
         self.unique_id = enumerator.get_id(self.regex.as_str());
     }
 
+    #[cfg_attr(not(feature = "matching-cache"), allow(dead_code))]
     pub fn get_unique_id(&self) -> usize {
         debug_assert!(self.unique_id != usize::MAX, "Regex is not enumerated");
         self.unique_id

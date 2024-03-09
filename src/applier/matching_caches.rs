@@ -7,6 +7,7 @@ use std::path::Path;
 pub struct GlobMatchingCache<'a> {
     path: &'a Path,
     match_options: glob::MatchOptions,
+    #[cfg_attr(not(feature = "matching-cache"), allow(dead_code))]
     cached_matches: Vec<Option<bool>>,
 }
 
@@ -20,7 +21,8 @@ impl<'a> GlobMatchingCache<'a> {
     }
 
     pub fn check_pattern_match(&mut self, glob: &Glob) -> bool {
-        if cfg!(feature = "matching-cache") {
+        #[cfg(feature = "matching-cache")]
+        {
             let cached = &mut self.cached_matches[glob.get_unique_id()];
             if let Some(cached) = &cached {
                 *cached
@@ -29,7 +31,9 @@ impl<'a> GlobMatchingCache<'a> {
                 *cached = Some(computed);
                 computed
             }
-        } else {
+        }
+        #[cfg(not(feature = "matching-cache"))]
+        {
             glob.matches_path_with(self.path, self.match_options)
         }
     }
@@ -48,6 +52,7 @@ impl<'a> GlobMatchingCache<'a> {
 
 pub struct RegexMatchingCache<'a> {
     line: &'a str,
+    #[cfg_attr(not(feature = "matching-cache"), allow(dead_code))]
     cached_matches: Vec<Option<bool>>,
 }
 
@@ -62,7 +67,8 @@ impl<'a> RegexMatchingCache<'a> {
     }
 
     pub fn check_pattern_match(&mut self, regex: &Regex) -> bool {
-        if cfg!(feature = "matching-cache") {
+        #[cfg(feature = "matching-cache")]
+        {
             let cached = &mut self.cached_matches[regex.get_unique_id() + 1];
             if let Some(cached) = &cached {
                 *cached
@@ -71,13 +77,16 @@ impl<'a> RegexMatchingCache<'a> {
                 *cached = Some(computed);
                 computed
             }
-        } else {
+        }
+        #[cfg(not(feature = "matching-cache"))]
+        {
             regex.is_match(self.line)
         }
     }
 
     pub fn check_ignore_marker_match(&mut self) -> bool {
-        if cfg!(feature = "matching-cache") {
+        #[cfg(feature = "matching-cache")]
+        {
             let cached = &mut self.cached_matches[0];
             if let Some(cached) = &cached {
                 *cached
@@ -86,7 +95,9 @@ impl<'a> RegexMatchingCache<'a> {
                 *cached = Some(computed);
                 computed
             }
-        } else {
+        }
+        #[cfg(not(feature = "matching-cache"))]
+        {
             self.line.contains(IGNORE_MARKER)
         }
     }
