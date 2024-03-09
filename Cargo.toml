@@ -18,6 +18,9 @@ harness = false
 
 [features]
 default = ["matching-cache", "multithreading"]
+# XXX: if you run omnilinter on directories with lots of files, or use huge ruleset, please
+# check if disabling matching-cache feature makes difference performance-wise and report.
+# It may make sense to drop it and simplify the code if it doesn't really help.
 matching-cache = []
 multithreading = ["dep:scoped_threadpool"]
 
