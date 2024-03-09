@@ -1,3 +1,25 @@
+## 0.4.0
+
+- Fix incorrect match reporting level (files vs. lines) in some cases
+- Fix incorrect line match reporting despite of `match` preconditions not
+  satisfied
+- Fix first parser eating away first character of exclude regexps
+- Improve ruleset syntax
+  - Don't use backslash escaping in rule titles, literal `]` may now be
+    written as `]]`
+  - Don't use backslash escaping in regexps - it's not really needed as
+    (almost) any framing charactes are allowed
+  - Support unicode framing characters in regexps
+  - Disallow brackets as regexp framing characters to avoid confusion
+- Implement parsed config dumping (may be useful in future for config
+  format migration)
+- Allow to delimit tags with commas in CLI (`--ignore-tags=foo,bar,baz`)
+- Make tags case insensitive
+- Improve glob and regexp matching performance
+- Don't panic with unhelpful message when non-directory is specified as root
+- No longer rely on rust unstable features and thus require rust nightly
+- Make some features conditionally compiled
+
 ## 0.3.0
 
 - Switch to custom config format
