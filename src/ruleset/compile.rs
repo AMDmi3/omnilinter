@@ -4,7 +4,7 @@
 use crate::ruleset::enumerator::Enumerator;
 use crate::ruleset::{ConditionLogic, Rule, Ruleset};
 
-#[derive(Debug)]
+#[cfg_attr(debug_assertions, derive(Debug))]
 pub struct CompiledRuleset {
     pub rules: Vec<Rule>,
     pub conditions_count: usize,

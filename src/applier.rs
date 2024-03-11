@@ -90,7 +90,8 @@ fn apply_content_rules(
     Ok(())
 }
 
-#[derive(Default, Debug)]
+#[derive(Default)]
+#[cfg_attr(debug_assertions, derive(Debug))]
 struct RuleMatchStatus<'a> {
     pub content_checks: Vec<(&'a GlobCondition, Rc<PathBuf>)>,
     pub matched_files: Vec<Rc<PathBuf>>,

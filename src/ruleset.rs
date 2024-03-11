@@ -9,7 +9,8 @@ use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
 use std::path::Path;
 
-#[derive(PartialEq, Eq, Hash, Debug)]
+#[derive(PartialEq, Eq, Hash)]
+#[cfg_attr(debug_assertions, derive(Debug))]
 enum GlobScope {
     Filenames,
     Paths,
@@ -36,6 +37,7 @@ impl PartialEq for Glob {
 
 impl Eq for Glob {}
 
+#[cfg(debug_assertions)]
 impl std::fmt::Debug for Glob {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Glob")
@@ -86,7 +88,7 @@ impl Glob {
     }
 }
 
-#[derive(Debug)]
+#[cfg_attr(debug_assertions, derive(Debug))]
 pub struct Regex {
     regex: regex::Regex,
     unique_id: usize,
@@ -119,14 +121,16 @@ impl Regex {
     }
 }
 
-#[derive(Default, Debug, PartialEq, Eq)]
+#[derive(Default, PartialEq, Eq)]
+#[cfg_attr(debug_assertions, derive(Debug))]
 pub enum ConditionLogic {
     #[default]
     Positive,
     Negative,
 }
 
-#[derive(Default, Debug)]
+#[derive(Default)]
+#[cfg_attr(debug_assertions, derive(Debug))]
 pub struct GlobCondition {
     pub number: usize,
     pub logic: ConditionLogic,
@@ -145,7 +149,8 @@ impl GlobCondition {
     }
 }
 
-#[derive(Default, Debug)]
+#[derive(Default)]
+#[cfg_attr(debug_assertions, derive(Debug))]
 pub struct RegexCondition {
     pub number: usize,
     pub logic: ConditionLogic,
@@ -154,7 +159,8 @@ pub struct RegexCondition {
     pub is_reporting_target: bool,
 }
 
-#[derive(Default, Debug)]
+#[derive(Default)]
+#[cfg_attr(debug_assertions, derive(Debug))]
 pub struct Rule {
     pub number: usize,
     pub title: String,
@@ -172,7 +178,8 @@ impl Rule {
     }
 }
 
-#[derive(Default, Debug)]
+#[derive(Default)]
+#[cfg_attr(debug_assertions, derive(Debug))]
 pub struct Ruleset {
     pub rules: Vec<Rule>,
 }
