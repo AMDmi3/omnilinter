@@ -66,7 +66,7 @@ fn dump_tags(rule: &Rule) {
 }
 
 fn dump_rule(rule: &Rule) {
-    println!("[{}]", rule.title.replace("]", "]]"));
+    println!("[{}]", rule.title.replace(']', "]]"));
     if !rule.tags.is_empty() {
         print!("    tags ");
         dump_tags(rule);

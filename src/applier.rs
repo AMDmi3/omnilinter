@@ -19,8 +19,8 @@ fn apply_content_rules(
     root: &Path,
     path: Rc<PathBuf>,
     mut rules_with_conditions: Vec<(&Rule, &GlobCondition)>,
-    global_rule_statuses: &mut Vec<RuleMatchStatus>,
-    global_condition_statuses: &mut Vec<bool>,
+    global_rule_statuses: &mut [RuleMatchStatus],
+    global_condition_statuses: &mut [bool],
 ) -> Result<(), std::io::Error> {
     let file = File::open(root.join(path.as_path()))?;
     let reader = BufReader::new(file);

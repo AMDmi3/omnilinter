@@ -26,8 +26,10 @@ fn parse_globs_condition(
     pair: pest::iterators::Pair<Rule>,
     logic: ConditionLogic,
 ) -> GlobCondition {
-    let mut cond: GlobCondition = Default::default();
-    cond.logic = logic;
+    let mut cond = GlobCondition {
+        logic,
+        ..Default::default()
+    };
     for item in pair.into_inner() {
         let item = item.as_str();
         if let Some(item) = item.strip_prefix('!') {
@@ -56,8 +58,10 @@ fn parse_regexes_condition(
     pair: pest::iterators::Pair<Rule>,
     logic: ConditionLogic,
 ) -> RegexCondition {
-    let mut cond: RegexCondition = Default::default();
-    cond.logic = logic;
+    let mut cond = RegexCondition {
+        logic,
+        ..Default::default()
+    };
     for item in pair.into_inner() {
         let item = item.as_str();
         if let Some(item) = item.strip_prefix('!') {

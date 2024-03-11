@@ -44,7 +44,7 @@ fn order_by_rules(lhs: &&Match, rhs: &&Match) -> std::cmp::Ordering {
         .then_with(|| lhs.rule.number.cmp(&rhs.rule.number))
 }
 
-fn sort_matches(matches: &mut Vec<&Match>, format: Format) {
+fn sort_matches(matches: &mut [&Match], format: Format) {
     match format {
         Format::ByRule => matches.sort_unstable_by(order_by_rules),
         Format::ByRootGrouped | Format::ByRootFullPaths | Format::ByPath => {
