@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2024 Dmitry Marakasov <amdmi3@amdmi3.ru>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use crate::lines;
 use crate::utils::TestCase;
+use crate::{lines, paths};
 
 #[test]
 fn simple() {
@@ -39,11 +39,11 @@ fn format_full_paths() {
         .add_named_rule("filerule", lines!["files *"])
         .add_named_rule("linerule", lines!["files *", "match /./"])
         .run()
-        .assert_stdout(lines![
+        .assert_stdout(paths!(lines![
             "root: rootrule",
             "root/file: filerule",
             "root/file:1: linerule"
-        ]);
+        ]));
 }
 
 #[test]
@@ -55,14 +55,14 @@ fn format_by_rule() {
         .add_named_rule("filerule", lines!["files *"])
         .add_named_rule("linerule", lines!["files *", "match /./"])
         .run()
-        .assert_stdout(lines![
+        .assert_stdout(paths!(lines![
             "rootrule",
             "  root",
             "filerule",
             "  root/file",
             "linerule",
             "  root/file:1"
-        ]);
+        ]));
 }
 
 #[test]
@@ -74,11 +74,11 @@ fn format_by_path() {
         .add_named_rule("filerule", lines!["files *"])
         .add_named_rule("linerule", lines!["files *", "match /./"])
         .run()
-        .assert_stdout(lines![
+        .assert_stdout(paths!(lines![
             "root",
             "  rootrule",
             "root/file",
             "  filerule",
             "  line 1: linerule"
-        ]);
+        ]));
 }

@@ -23,6 +23,13 @@ macro_rules! lines {
     }};
 }
 
+#[macro_export]
+macro_rules! paths {
+    ($s:expr) => {{
+        &$s.replace('/', std::path::MAIN_SEPARATOR_STR) // omnilinter: ignore
+    }};
+}
+
 #[derive(Deserialize)]
 pub struct Match {
     message: String,
