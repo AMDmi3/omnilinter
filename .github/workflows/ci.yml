@@ -7,11 +7,11 @@ jobs:
         include:
           - { name: "Rust 1.74",   rust: "1.74",  os: ubuntu-latest, cargo_args: "" }
           - { name: "Rust stable", rust: stable,  os: ubuntu-latest, cargo_args: "" }
-          - { name: "Rust nighly", rust: nightly, os: ubuntu-latest, cargo_args: "" }
-          - { name: "Rust nighly, windows", rust: nightly, os: windows-latest, cargo_args: "" }
-          - { name: "Rust nighly, macos", rust: nightly, os: macos-latest, cargo_args: "" }
-          - { name: "Rust nighly, release", rust: nightly, os: windows-latest, cargo_args: "--release" }
-          - { name: "Rust nighly, no default features", rust: nightly, os: ubuntu-latest, cargo_args: "--no-default-features" }
+          - { name: "Rust nightly", rust: nightly, os: ubuntu-latest, cargo_args: "" }
+          - { name: "Rust nightly, windows", rust: nightly, os: windows-latest, cargo_args: "" }
+          - { name: "Rust nightly, macos", rust: nightly, os: macos-latest, cargo_args: "" }
+          - { name: "Rust nightly, release", rust: nightly, os: windows-latest, cargo_args: "--release" }
+          - { name: "Rust nightly, nofeatures", rust: nightly, os: ubuntu-latest, cargo_args: "--no-default-features" }
       fail-fast: false
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.name }}
