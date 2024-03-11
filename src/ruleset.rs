@@ -6,10 +6,9 @@ pub mod enumerator;
 
 use crate::ruleset::enumerator::Enumerator;
 use std::collections::HashSet;
-use std::hash::{Hash, Hasher};
 use std::path::Path;
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(PartialEq, Eq)]
 #[cfg_attr(debug_assertions, derive(Debug))]
 enum GlobScope {
     Filenames,
@@ -21,21 +20,6 @@ pub struct Glob {
     scope: GlobScope,
     unique_id: usize,
 }
-
-impl Hash for Glob {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.pattern.as_str().hash(state);
-        self.scope.hash(state);
-    }
-}
-
-impl PartialEq for Glob {
-    fn eq(&self, other: &Self) -> bool {
-        self.pattern.as_str() == other.pattern.as_str() && self.scope == other.scope
-    }
-}
-
-impl Eq for Glob {}
 
 #[cfg(debug_assertions)]
 impl std::fmt::Debug for Glob {
