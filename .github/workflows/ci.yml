@@ -43,15 +43,20 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: nightly
+          components: llvm-tools-preview
       - name: Test
         run: cargo test
         env:
-          RUSTFLAGS: '-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Cpanic=abort -Zpanic_abort_tests'
-          RUSTDOCFLAGS: '-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Cpanic=abort -Zpanic_abort_tests'
+          RUSTFLAGS: "-Cinstrument-coverage"
+          RUSTDOCFLAGS: "-Cinstrument-coverage"
+          LLVM_PROFILE_FILE: "${{ github.workspace }}/default_%m_%p.profraw"
       - name: Collect coverage
-        uses: actions-rs/grcov@v0.1
+        run: |
+          curl -sL https://github.com/mozilla/grcov/releases/download/v0.8.19/grcov-x86_64-unknown-linux-gnu.tar.bz2 | tar -xjf-
+          ./grcov . --binary-path ./target/debug/deps/ -s . -t lcov --branch --ignore-not-existing --ignore "tests/*" --ignore "**/tests.rs" -o coverage.lcov
       - name: Submit coverage
         uses: codecov/codecov-action@v4
         with:
           fail_ci_if_error: true
+          files: ./coverage.lcov
           token: ${{ secrets.CODECOV_TOKEN }}
