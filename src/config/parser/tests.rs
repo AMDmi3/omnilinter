@@ -165,6 +165,64 @@ mod parse_regexp {
     }
 }
 
+mod parse_globs {
+    use crate::config::Config;
+
+    #[test]
+    fn basic() {
+        let text = lines!["[]", "files *"];
+        let config = Config::from_str(text).unwrap();
+        assert_eq!(
+            config.ruleset.rules[0].path_conditions[0].patterns[0].as_str(),
+            "*"
+        );
+    }
+
+    #[test]
+    #[ignore] // TODO: implement (issue #39)
+    fn backslash_escape() {
+        let text = lines!["[]", "files \\*\\ \\*"];
+        let config = Config::from_str(text).unwrap();
+        assert_eq!(
+            config.ruleset.rules[0].path_conditions[0].patterns[0].as_str(),
+            "[*] [*]" // as per glob::Pattern::escape
+        );
+    }
+
+    #[test]
+    #[ignore] // TODO: implement (issue #39)
+    fn dquote() {
+        let text = lines!["[]", "files \"* *\""];
+        let config = Config::from_str(text).unwrap();
+        assert_eq!(
+            config.ruleset.rules[0].path_conditions[0].patterns[0].as_str(),
+            "[*] [*]" // as per glob::Pattern::escape
+        );
+    }
+
+    #[test]
+    #[ignore] // TODO: implement (issue #39)
+    fn squote() {
+        let text = lines!["[]", "files '* *'"];
+        let config = Config::from_str(text).unwrap();
+        assert_eq!(
+            config.ruleset.rules[0].path_conditions[0].patterns[0].as_str(),
+            "[*] [*]" // as per glob::Pattern::escape
+        );
+    }
+
+    #[test]
+    #[ignore] // TODO: implement (issue #39)
+    fn mixed_quoting() {
+        let text = lines!["[]", "files *\\*\"*\"'*'"];
+        let config = Config::from_str(text).unwrap();
+        assert_eq!(
+            config.ruleset.rules[0].path_conditions[0].patterns[0].as_str(),
+            "*[*][*][*]" // as per glob::Pattern::escape
+        );
+    }
+}
+
 #[test]
 #[should_panic]
 fn match_without_files() {
