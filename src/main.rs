@@ -109,10 +109,12 @@ fn main() {
 
     let mut config = Config::new();
 
-    let default_config_path = match xdg::BaseDirectories::with_prefix("omnilinter") {
-        Ok(xdg_dirs) => xdg_dirs.find_config_file(CONFIG_FILE_NAME),
-        Err(err) => {
-            eprintln!("Warning: cannot set up XDG directories: {}", err);
+    let default_config_path = match directories::ProjectDirs::from("", "", "omnilinter") {
+        Some(directories) => Some(directories.config_dir().join(CONFIG_FILE_NAME)),
+        None => {
+            eprintln!(
+                "Warning: cannot set up project directories, default config will not be available"
+            );
             None
         }
     };
