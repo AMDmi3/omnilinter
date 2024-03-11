@@ -20,25 +20,25 @@ default = ["matching-cache", "multithreading"]
 # check if disabling matching-cache feature makes difference performance-wise and report.
 # It may make sense to drop it and simplify the code if it doesn't really help.
 matching-cache = []
-multithreading = ["dep:scoped_threadpool"]
+multithreading = ["dep:scoped_threadpool", "dep:num_cpus"]
 
 [dependencies]
-assert_cmd = "2.0.13"
 clap = { version = "4.5.2", features = ["derive"] }
 colored = "2.1.0"
 fxhash = "0.2.1"
 glob = "0.3.1"
-num_cpus = "1.16.0"
+num_cpus = { version = "1.16.0", optional = true }
 pest = "2.7.7"
 pest_derive = { version = "2.7.7", features = ["grammar-extras"] }
 regex = { version = "1.10.3", default-features = false, features = ["std", "unicode-perl"] }
 scoped_threadpool = { version = "0.1.9", optional = true }
 serde = { version = "1.0.196", features = ["derive"] }
 serde_json = "1.0.113"
-tempdir = "0.3.7"
 walkdir = "2.4.0"
 xdg = "2.5.2"
 
 [dev-dependencies]
+assert_cmd = "2.0.13"
 criterion = { version = "0.5.1", default-features = false, features = ["cargo_bench_support"] }
 rstest = { version = "0.18.2", default-features = false }
+tempdir = "0.3.7"
