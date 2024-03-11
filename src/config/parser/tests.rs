@@ -50,6 +50,20 @@ mod parse_rule_title {
     }
 }
 
+mod parse_tags {
+    use crate::config::Config;
+
+    #[test]
+    fn tags() {
+        let text = lines!["[]", "tags A B,C"];
+        let config = Config::from_str(text).unwrap();
+        assert_eq!(config.ruleset.rules[0].tags.len(), 3);
+        assert!(config.ruleset.rules[0].tags.contains("a"));
+        assert!(config.ruleset.rules[0].tags.contains("b"));
+        assert!(config.ruleset.rules[0].tags.contains("c"));
+    }
+}
+
 mod parse_regexp {
     use crate::config::Config;
 
