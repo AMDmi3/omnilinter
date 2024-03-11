@@ -48,8 +48,8 @@ impl std::fmt::Debug for Glob {
 impl Glob {
     pub fn new(pattern: &str) -> Result<Self, glob::PatternError> {
         Ok(Self {
-            pattern: glob::Pattern::new(pattern.trim_start_matches(std::path::MAIN_SEPARATOR))?,
-            scope: if pattern.contains(std::path::MAIN_SEPARATOR_STR) {
+            pattern: glob::Pattern::new(pattern.trim_start_matches(std::path::is_separator))?,
+            scope: if pattern.chars().any(std::path::is_separator) {
                 GlobScope::Paths
             } else {
                 GlobScope::Filenames
