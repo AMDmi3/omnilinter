@@ -39,18 +39,5 @@ fn config_parse_dump_test() {
 
     let second_dump = parse_dump_config(&output_path);
 
-    if first_dump != second_dump {
-        first_dump
-            .lines()
-            .zip(second_dump.lines())
-            .for_each(|(l, r)| {
-                if l == r {
-                    eprintln!("{}", l);
-                } else {
-                    eprintln!("-{}", l);
-                    eprintln!("+{}", r);
-                }
-            });
-        assert!(false, "difference found after parsing and dumping config");
-    }
+    pretty_assertions::assert_eq!(first_dump, second_dump);
 }
