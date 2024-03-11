@@ -12,3 +12,73 @@ fn simple() {
         .run()
         .assert_stdout_contains("a.py:2");
 }
+
+#[test]
+fn format_by_root() {
+    TestCase::new_for_stdout_tests()
+        .add_arg("--format=by-root")
+        .add_file("file", lines!["line"])
+        .add_named_rule("rootrule", "")
+        .add_named_rule("filerule", lines!["files *"])
+        .add_named_rule("linerule", lines!["files *", "match /./"])
+        .run()
+        .assert_stdout(lines![
+            "root",
+            "  rootrule",
+            "  file: filerule",
+            "  file:1: linerule"
+        ]);
+}
+
+#[test]
+fn format_full_paths() {
+    TestCase::new_for_stdout_tests()
+        .add_arg("--format=full-paths")
+        .add_file("file", lines!["line"])
+        .add_named_rule("rootrule", "")
+        .add_named_rule("filerule", lines!["files *"])
+        .add_named_rule("linerule", lines!["files *", "match /./"])
+        .run()
+        .assert_stdout(lines![
+            "root: rootrule",
+            "root/file: filerule",
+            "root/file:1: linerule"
+        ]);
+}
+
+#[test]
+fn format_by_rule() {
+    TestCase::new_for_stdout_tests()
+        .add_arg("--format=by-rule")
+        .add_file("file", lines!["line"])
+        .add_named_rule("rootrule", "")
+        .add_named_rule("filerule", lines!["files *"])
+        .add_named_rule("linerule", lines!["files *", "match /./"])
+        .run()
+        .assert_stdout(lines![
+            "rootrule",
+            "  root",
+            "filerule",
+            "  root/file",
+            "linerule",
+            "  root/file:1"
+        ]);
+}
+
+#[test]
+fn format_by_path() {
+    TestCase::new_for_stdout_tests()
+        .add_arg("--format=by-path")
+        .add_file("file", lines!["line"])
+        .add_named_rule("rootrule", "")
+        .add_named_rule("filerule", lines!["files *"])
+        .add_named_rule("linerule", lines!["files *", "match /./"])
+        .run()
+        .assert_stdout(lines![
+            "root",
+            "  rootrule",
+            "root/file",
+            "  filerule",
+            "  line 1: linerule"
+        ]);
+}

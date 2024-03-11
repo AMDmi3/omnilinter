@@ -105,6 +105,11 @@ impl TestCase {
     }
 
     pub fn add_rule(&mut self, rule: &str) -> &mut Self {
+        self.add_named_rule("", rule);
+        self
+    }
+
+    pub fn add_named_rule(&mut self, name: &str, rule: &str) -> &mut Self {
         let ruleset_path = self.temp_dir.path().join("omnilinter.conf");
         let mut file = std::fs::OpenOptions::new()
             .create(true)
@@ -112,9 +117,8 @@ impl TestCase {
             .open(ruleset_path)
             .unwrap();
 
-        file.write_all(b"[]\n").unwrap();
-        file.write_all(rule.as_bytes()).unwrap();
-        file.write_all(b"\n").unwrap();
+        file.write_all(format!("[{}]\n{}\n", name, rule).as_bytes())
+            .unwrap();
 
         self
     }
@@ -216,6 +220,11 @@ impl TestRunResult {
 
     pub fn assert_stdout_contains(&self, sample: &str) -> &Self {
         assert!(from_utf8(&self.output.stdout).unwrap().contains(sample));
+        self
+    }
+
+    pub fn assert_stdout(&self, expected: &str) -> &Self {
+        pretty_assertions::assert_eq!(from_utf8(&self.output.stdout).unwrap(), expected);
         self
     }
 }
