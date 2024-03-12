@@ -2,17 +2,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use crate::config::Config;
-
-macro_rules! lines {
-    ($($s:expr),+) => {{
-        concat!(
-            $($s,'\n',)+
-        )
-    }};
-}
+use testutils::lines;
 
 mod parse_rule_title {
-    use crate::config::Config;
+    use super::*;
 
     #[test]
     fn simple() {
@@ -51,7 +44,7 @@ mod parse_rule_title {
 }
 
 mod parse_tags {
-    use crate::config::Config;
+    use super::*;
 
     #[test]
     fn tags() {
@@ -65,7 +58,7 @@ mod parse_tags {
 }
 
 mod parse_regexp {
-    use crate::config::Config;
+    use super::*;
 
     #[test]
     fn whitespace() {
@@ -166,7 +159,7 @@ mod parse_regexp {
 }
 
 mod parse_globs {
-    use crate::config::Config;
+    use super::*;
 
     #[test]
     fn basic() {
