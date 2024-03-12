@@ -11,7 +11,6 @@ categories = ["command-line-utilities", "development-tools"]
 
 [[bench]]
 name = "bench"
-path = "tests/bench.rs"
 harness = false
 
 [features]
