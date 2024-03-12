@@ -10,7 +10,7 @@ jobs:
           - { name: "Rust nightly", rust: nightly, os: ubuntu-latest, cargo_args: "" }
           - { name: "Rust nightly, windows", rust: nightly, os: windows-latest, cargo_args: "" }
           - { name: "Rust nightly, macos", rust: nightly, os: macos-latest, cargo_args: "" }
-          - { name: "Rust nightly, release", rust: nightly, os: windows-latest, cargo_args: "--release" }
+          - { name: "Rust nightly, release", rust: nightly, os: ubuntu-latest, cargo_args: "--release" }
           - { name: "Rust nightly, nofeatures", rust: nightly, os: ubuntu-latest, cargo_args: "--no-default-features" }
       fail-fast: false
     runs-on: ${{ matrix.os }}
