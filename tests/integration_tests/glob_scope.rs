@@ -1,9 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2024 Dmitry Marakasov <amdmi3@amdmi3.ru>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use crate::paths;
-use crate::utils::TestCase;
 use rstest::{fixture, rstest};
+use testutils::{paths, TestCase};
 
 #[fixture]
 fn test_case() -> TestCase {

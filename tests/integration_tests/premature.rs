@@ -1,8 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2024 Dmitry Marakasov <amdmi3@amdmi3.ru>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use crate::lines;
-use crate::utils::TestCase;
+use testutils::{lines, TestCase};
 
 // check that negative conditions still apply, even if positive
 // conditions are satisfied earlier

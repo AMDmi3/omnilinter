@@ -1,10 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2024 Dmitry Marakasov <amdmi3@amdmi3.ru>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-mod utils;
-
 use criterion::{criterion_group, criterion_main, Criterion};
-use utils::TestCase;
+use testutils::TestCase;
 
 fn file_checks_with_little_matching_rules(c: &mut Criterion) {
     let mut testcase = TestCase::new_for_json_tests();

@@ -43,3 +43,4 @@ criterion = { version = "0.5.1", default-features = false, features = ["cargo_be
 pretty_assertions = "1.4.0"
 rstest = { version = "0.18.2", default-features = false }
 tempdir = "0.3.7"
+testutils = { path = "testutils" }

@@ -1,0 +1,11 @@
+[package]
+name = "testutils"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+assert_cmd = "2.0.14"
+pretty_assertions = "1.4.0"
+serde_json = "1.0.114"
+serde = { version = "1.0.197", features = ["derive"] }
+tempdir = "0.3.7"
