@@ -93,6 +93,23 @@ struct Args {
     roots: Vec<PathBuf>,
 }
 
+fn get_default_config_path() -> Option<PathBuf> {
+    match directories::ProjectDirs::from("", "", "omnilinter") {
+        Some(directories) => {
+            let path = directories.config_dir().join(CONFIG_FILE_NAME);
+            if path.exists() {
+                return Some(path);
+            }
+        }
+        None => {
+            eprintln!(
+                "Warning: cannot set up project directories, default config will not be available"
+            );
+        }
+    }
+    None
+}
+
 fn main() {
     let args = Args::parse();
 
@@ -107,17 +124,9 @@ fn main() {
         _ => {}
     }
 
-    let mut config = Config::new();
+    let default_config_path = get_default_config_path();
 
-    let default_config_path = match directories::ProjectDirs::from("", "", "omnilinter") {
-        Some(directories) => Some(directories.config_dir().join(CONFIG_FILE_NAME)),
-        None => {
-            eprintln!(
-                "Warning: cannot set up project directories, default config will not be available"
-            );
-            None
-        }
-    };
+    let mut config = Config::new();
 
     if !args.config_paths.is_empty() {
         args.config_paths.iter().for_each(|path| {
