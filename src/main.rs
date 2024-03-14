@@ -159,33 +159,34 @@ fn main() {
     let result = {
         #[cfg(feature = "multithreading")]
         {
-            use scoped_threadpool::Pool as ThreadPool;
+            use rayon::prelude::*;
             use std::sync::{Arc, Mutex};
 
-            let result = Arc::new(Mutex::new(MatchResult::new()));
+            if let Some(num_threads) = args.num_threads {
+                rayon::ThreadPoolBuilder::new()
+                    .num_threads(num_threads)
+                    .build_global()
+                    .unwrap();
+            }
 
-            let num_threads = args.num_threads.unwrap_or_else(num_cpus::get);
-            let mut pool = ThreadPool::new(num_threads.try_into().unwrap_or(1));
+            let shared_result = Arc::new(Mutex::new(MatchResult::new()));
 
-            pool.scoped(|scope| {
-                let ruleset = &ruleset;
-                for root in &roots {
-                    let result = result.clone();
-                    scope.execute(move || {
-                        let res = apply_ruleset(ruleset, root);
-                        result.lock().unwrap().append(res);
-                    });
-                }
+            roots.par_iter().for_each(|root| {
+                let partial_result = apply_ruleset(&ruleset, root);
+                shared_result.lock().unwrap().append(partial_result);
             });
 
-            Arc::into_inner(result).unwrap().into_inner().unwrap()
+            Arc::into_inner(shared_result)
+                .unwrap()
+                .into_inner()
+                .unwrap()
         }
         #[cfg(not(feature = "multithreading"))]
         {
             let mut result = MatchResult::new();
-            for root in &roots {
-                result.append(apply_ruleset(&ruleset, root));
-            }
+            roots
+                .iter()
+                .for_each(|root| result.append(apply_ruleset(&ruleset, root)));
 
             result
         }
