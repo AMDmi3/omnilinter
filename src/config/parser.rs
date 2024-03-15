@@ -7,6 +7,7 @@ mod tests;
 use crate::config::Config;
 use crate::ruleset::Rule as RulesetRule;
 use crate::ruleset::{ConditionLogic, Glob, GlobCondition, Regex, RegexCondition};
+use anyhow::{Context, Error};
 use pest::Parser;
 use std::collections::HashSet;
 use std::fs;
@@ -15,6 +16,40 @@ use std::path::Path;
 #[derive(pest_derive::Parser)]
 #[grammar = "config/parser/omnilinter.pest"]
 pub struct ConfigParser;
+
+type PestError = pest::error::Error<Rule>;
+
+fn glob_pattern_error_into_pest_error(
+    e: glob::PatternError,
+    item: &pest::iterators::Pair<Rule>,
+) -> PestError {
+    let span = item.as_span();
+    let pos = pest::Position::new(span.get_input(), span.start() + e.pos).unwrap();
+    PestError::new_from_pos(
+        pest::error::ErrorVariant::<Rule>::CustomError {
+            message: e.msg.to_owned(),
+        },
+        pos,
+    )
+}
+
+fn regex_error_into_pest_error(e: regex::Error, item: &pest::iterators::Pair<Rule>) -> PestError {
+    PestError::new_from_span(
+        pest::error::ErrorVariant::<Rule>::CustomError {
+            message: e.to_string(),
+        },
+        item.as_span(),
+    )
+}
+
+fn glob_error_into_pest_error(e: glob::GlobError, item: &pest::iterators::Pair<Rule>) -> PestError {
+    PestError::new_from_span(
+        pest::error::ErrorVariant::<Rule>::CustomError {
+            message: e.to_string(),
+        },
+        item.as_span(),
+    )
+}
 
 fn parse_tags(pair: pest::iterators::Pair<Rule>) -> HashSet<String> {
     pair.into_inner()
@@ -25,55 +60,63 @@ fn parse_tags(pair: pest::iterators::Pair<Rule>) -> HashSet<String> {
 fn parse_globs_condition(
     pair: pest::iterators::Pair<Rule>,
     logic: ConditionLogic,
-) -> GlobCondition {
+) -> Result<GlobCondition, PestError> {
     let mut cond = GlobCondition {
         logic,
         ..Default::default()
     };
     for item in pair.into_inner() {
-        let item = item.as_str();
-        if let Some(item) = item.strip_prefix('!') {
-            cond.excludes.push(Glob::new(item).unwrap());
+        let item_text = item.as_str();
+        if let Some(item_text) = item_text.strip_prefix('!') {
+            cond.excludes.push(
+                Glob::new(item_text).map_err(|e| glob_pattern_error_into_pest_error(e, &item))?,
+            );
         } else {
-            cond.patterns.push(Glob::new(item).unwrap());
+            cond.patterns.push(
+                Glob::new(item_text).map_err(|e| glob_pattern_error_into_pest_error(e, &item))?,
+            );
         }
     }
-    cond
+    Ok(cond)
 }
 
 fn parse_title(s: &str) -> String {
     s[1..s.len() - 1].replace("]]", "]")
 }
 
-fn parse_regex_str(s: &str) -> Regex {
+fn parse_regex_str(s: &str) -> Result<Regex, regex::Error> {
     let framing_char_length = s
         .chars()
         .next()
         .expect("framing characters presence is enforced by grammar")
         .len_utf8();
-    Regex::new(&s[framing_char_length..s.len() - framing_char_length]).unwrap()
+    Regex::new(&s[framing_char_length..s.len() - framing_char_length])
 }
 
 fn parse_regexes_condition(
     pair: pest::iterators::Pair<Rule>,
     logic: ConditionLogic,
-) -> RegexCondition {
+) -> Result<RegexCondition, PestError> {
     let mut cond = RegexCondition {
         logic,
         ..Default::default()
     };
     for item in pair.into_inner() {
-        let item = item.as_str();
-        if let Some(item) = item.strip_prefix('!') {
-            cond.excludes.push(parse_regex_str(item));
+        let item_text = item.as_str();
+        if let Some(item_text) = item_text.strip_prefix('!') {
+            cond.excludes.push(
+                parse_regex_str(item_text).map_err(|e| regex_error_into_pest_error(e, &item))?,
+            );
         } else {
-            cond.patterns.push(parse_regex_str(item));
+            cond.patterns.push(
+                parse_regex_str(item_text).map_err(|e| regex_error_into_pest_error(e, &item))?,
+            );
         }
     }
-    cond
+    Ok(cond)
 }
 
-fn parse_files_condition(pair: pest::iterators::Pair<Rule>) -> GlobCondition {
+fn parse_files_condition(pair: pest::iterators::Pair<Rule>) -> Result<GlobCondition, PestError> {
     let mut condition: GlobCondition = Default::default();
 
     for item in pair.into_inner() {
@@ -82,19 +125,19 @@ fn parse_files_condition(pair: pest::iterators::Pair<Rule>) -> GlobCondition {
                 condition = parse_globs_condition(
                     item.into_inner().next().unwrap(),
                     ConditionLogic::Positive,
-                );
+                )?;
             }
             Rule::rule_directive_match => {
                 condition.content_conditions.push(parse_regexes_condition(
                     item.into_inner().next().unwrap(),
                     ConditionLogic::Positive,
-                ));
+                )?);
             }
             Rule::rule_directive_nomatch => {
                 condition.content_conditions.push(parse_regexes_condition(
                     item.into_inner().next().unwrap(),
                     ConditionLogic::Negative,
-                ));
+                )?);
             }
             _ => unreachable!(
                 "unexpected parser rule type in parse_files_condition {:#?}",
@@ -103,14 +146,14 @@ fn parse_files_condition(pair: pest::iterators::Pair<Rule>) -> GlobCondition {
         }
     }
 
-    condition
+    Ok(condition)
 }
 
 fn parse_rule(
     pair: pest::iterators::Pair<Rule>,
     rule_number: usize,
     source_desc: &str,
-) -> RulesetRule {
+) -> Result<RulesetRule, PestError> {
     let mut rule: RulesetRule = Default::default();
 
     for item in pair.into_inner() {
@@ -131,52 +174,86 @@ fn parse_rule(
             }
             Rule::rule_directive_tags => rule.tags = parse_tags(item.into_inner().next().unwrap()),
             Rule::rule_directive_files => {
-                rule.path_conditions.push(parse_files_condition(item));
+                rule.path_conditions.push(parse_files_condition(item)?);
             }
             Rule::rule_directive_nofiles => {
                 rule.path_conditions.push(parse_globs_condition(
                     item.into_inner().next().unwrap(),
                     ConditionLogic::Negative,
-                ));
+                )?);
             }
             _ => unreachable!("unexpected parser rule type in parse_rule {:#?}", item),
         }
     }
 
-    rule
+    Ok(rule)
 }
 
 impl Config {
     #[allow(dead_code)]
-    pub fn from_str(s: &str) -> Result<Config, ()> {
+    pub fn from_str(s: &str) -> Result<Config, Error> {
         Self::from_str_with_desc(s, "???")
     }
 
-    pub fn from_str_with_desc(s: &str, source_desc: &str) -> Result<Config, ()> {
+    pub fn from_str_with_desc(s: &str, source_desc: &str) -> Result<Config, Error> {
         let mut config: Config = Default::default();
 
         let file = ConfigParser::parse(Rule::file, s)
-            .expect("unsuccessful parse")
+            .map_err(|err| {
+                err.renamed_rules(|parser_rule| match *parser_rule {
+                    Rule::EOI => "end of file".to_owned(),
+                    Rule::config_directive_root => "\"root\" directive".to_owned(),
+                    Rule::excluded_glob => {
+                        "exclusion glob pattern prefixed with exclamation mark".to_owned()
+                    }
+                    Rule::excluded_regexp => {
+                        "exclusion regexp pattern prefixed with exclamation mark".to_owned()
+                    }
+                    Rule::included_glob => "glob pattern".to_owned(),
+                    Rule::included_regexp => "regexp pattern".to_owned(),
+                    Rule::rule_directive_files_inner => "\"files\" condition".to_owned(),
+                    Rule::rule_directive_match => "\"match\" condition".to_owned(),
+                    Rule::rule_directive_nofiles => "\"nofiles\" condition".to_owned(),
+                    Rule::rule_directive_nomatch => "\"nomatch\" condition".to_owned(),
+                    Rule::rule_directive_tags => "\"tags\" directive".to_owned(),
+                    Rule::rule_title_outer => "rule title in brackets".to_owned(),
+                    Rule::simple_glob => "glob pattern".to_owned(),
+                    // XXX: how to make pest always descend into main rule?
+                    Rule::file => "omnilinter configuration file".to_owned(),
+                    other => format!("{:?}", other),
+                })
+                .with_path(source_desc)
+            })?
             .next()
             .unwrap();
 
         for item in file.into_inner() {
             match item.as_rule() {
                 Rule::config_directive_root => {
-                    let root_pattern = item.into_inner().next().unwrap().as_str();
-                    let mut root_paths: Vec<_> = glob::glob(root_pattern)
-                        .unwrap()
-                        .map(|item| item.unwrap())
-                        .collect();
+                    let root_pattern = item.into_inner().next().unwrap();
+                    let root_pattern_text = root_pattern.as_str();
+                    let mut root_paths = Vec::new();
+                    for path_or_error in glob::glob(root_pattern_text).map_err(|e| {
+                        glob_pattern_error_into_pest_error(e, &root_pattern).with_path(source_desc)
+                    })? {
+                        // XXX: convert this loop into try_collect when stabilized
+                        root_paths.push(
+                            path_or_error
+                                .map_err(|e| {
+                                    glob_error_into_pest_error(e, &root_pattern)
+                                        .with_path(source_desc)
+                                })
+                                .with_context(|| "failed to expand root glob".to_owned())?,
+                        );
+                    }
                     root_paths.sort();
                     config.roots.append(&mut root_paths);
                 }
                 Rule::rule => {
-                    config.ruleset.rules.push(parse_rule(
-                        item,
-                        config.ruleset.rules.len(),
-                        source_desc,
-                    ));
+                    config.ruleset.rules.push(
+                        parse_rule(item, config.ruleset.rules.len(), source_desc)
+                            .map_err(|e| e.with_path(source_desc))?,
+                    );
                 }
                 Rule::EOI => (),
                 _ => unreachable!("unexpected parser rule type in from_str {:#?}", item),
@@ -186,10 +263,12 @@ impl Config {
         Ok(config)
     }
 
-    pub fn from_file(path: &Path) -> Result<Config, ()> {
+    pub fn from_file(path: &Path) -> Result<Config, Error> {
         Self::from_str_with_desc(
-            &fs::read_to_string(path).unwrap(),
+            &fs::read_to_string(path)
+                .with_context(|| format!("failed to read config file {}", path.display()))?,
             &path.display().to_string(),
         )
+        .with_context(|| format!("failed to parse config file {}", path.display()))
     }
 }
