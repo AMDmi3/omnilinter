@@ -143,8 +143,7 @@ pub struct RegexCondition {
     pub excludes: Vec<Regex>,
 }
 
-#[derive(PartialEq, Eq)]
-#[cfg_attr(debug_assertions, derive(Debug))]
+#[derive(PartialEq, Eq, Debug)]
 pub enum SizeOperator {
     Greater,
     GreaterEqual,
