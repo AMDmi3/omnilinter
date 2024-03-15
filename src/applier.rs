@@ -5,7 +5,7 @@ mod matching_caches;
 
 use crate::r#match::{Match, MatchResult};
 use crate::ruleset::compile::CompiledRuleset;
-use crate::ruleset::{ConditionLogic, GlobCondition, Rule};
+use crate::ruleset::{ConditionLogic, ContentCondition, GlobCondition, Rule};
 use matching_caches::{GlobMatchingCache, RegexMatchingCache};
 use std::collections::HashMap;
 use std::fs::File;
@@ -35,22 +35,23 @@ fn apply_content_rules(
 
         rules_with_conditions.retain(|(rule, path_condition)| {
             let mut num_satisfied_content_conditions = 0;
-            for content_condition in &path_condition.content_conditions {
-                match content_condition.logic {
-                    ConditionLogic::Negative => {
-                        if matching_cache.check_condition_match(content_condition) {
+            for content_condition_node in &path_condition.content_conditions {
+                match &content_condition_node.condition {
+                    ContentCondition::NoMatch(regex_condition) => {
+                        if matching_cache.check_condition_match(regex_condition) {
                             return false;
                         }
                     }
-                    ConditionLogic::Positive => {
-                        let is_matched = &mut local_condition_statuses[content_condition.number];
-                        if content_condition.is_reporting_target {
-                            if matching_cache.check_condition_match(content_condition) {
+                    ContentCondition::Match(regex_condition) => {
+                        let is_matched =
+                            &mut local_condition_statuses[content_condition_node.number];
+                        if content_condition_node.is_reporting_target {
+                            if matching_cache.check_condition_match(regex_condition) {
                                 *is_matched = true;
                                 matched_lines[rule.number].push(line_number);
                             }
                         } else if !*is_matched {
-                            *is_matched = matching_cache.check_condition_match(content_condition);
+                            *is_matched = matching_cache.check_condition_match(regex_condition);
                         } else {
                             num_satisfied_content_conditions += 1;
                         }

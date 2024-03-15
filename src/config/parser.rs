@@ -9,7 +9,10 @@ mod tests;
 
 use crate::config::Config;
 use crate::ruleset::Rule as RulesetRule;
-use crate::ruleset::{ConditionLogic, Glob, GlobCondition, Regex, RegexCondition};
+use crate::ruleset::{
+    ConditionLogic, ContentCondition, ContentConditionNode, Glob, GlobCondition, Regex,
+    RegexCondition,
+};
 use anyhow::{Context, Error};
 use pest::Parser;
 use std::collections::HashSet;
@@ -96,14 +99,8 @@ fn parse_regex_str(s: &str) -> Result<Regex, regex::Error> {
     Regex::new(&s[framing_char_length..s.len() - framing_char_length])
 }
 
-fn parse_regexes_condition(
-    pair: pest::iterators::Pair<Rule>,
-    logic: ConditionLogic,
-) -> Result<RegexCondition, PestError> {
-    let mut cond = RegexCondition {
-        logic,
-        ..Default::default()
-    };
+fn parse_regexes_condition(pair: pest::iterators::Pair<Rule>) -> Result<RegexCondition, PestError> {
+    let mut cond: RegexCondition = Default::default();
     for item in pair.into_inner() {
         let item_text = item.as_str();
         if let Some(item_text) = item_text.strip_prefix('!') {
@@ -131,16 +128,18 @@ fn parse_files_condition(pair: pest::iterators::Pair<Rule>) -> Result<GlobCondit
                 )?;
             }
             Rule::rule_directive_match => {
-                condition.content_conditions.push(parse_regexes_condition(
-                    item.into_inner().next().unwrap(),
-                    ConditionLogic::Positive,
-                )?);
+                condition.content_conditions.push(ContentConditionNode::new(
+                    ContentCondition::Match(parse_regexes_condition(
+                        item.into_inner().next().unwrap(),
+                    )?),
+                ));
             }
             Rule::rule_directive_nomatch => {
-                condition.content_conditions.push(parse_regexes_condition(
-                    item.into_inner().next().unwrap(),
-                    ConditionLogic::Negative,
-                )?);
+                condition.content_conditions.push(ContentConditionNode::new(
+                    ContentCondition::NoMatch(parse_regexes_condition(
+                        item.into_inner().next().unwrap(),
+                    )?),
+                ));
             }
             _ => unreachable!(
                 "unexpected parser rule type in parse_files_condition {:#?}",

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use crate::ruleset::enumerator::Enumerator;
-use crate::ruleset::{ConditionLogic, Rule, Ruleset};
+use crate::ruleset::{ConditionLogic, ContentCondition, RegexCondition, Rule, Ruleset};
 
 #[cfg_attr(debug_assertions, derive(Debug))]
 pub struct CompiledRuleset {
@@ -14,9 +14,10 @@ pub struct CompiledRuleset {
 
 fn set_reporting_target(rule: &mut Rule) {
     if let Some(last_path_condition) = rule.path_conditions.last_mut() {
-        if let Some(last_content_condition) = last_path_condition.content_conditions.last_mut() {
-            if last_content_condition.logic == ConditionLogic::Positive {
-                last_content_condition.is_reporting_target = true;
+        if let Some(last_content_condition_node) = last_path_condition.content_conditions.last_mut()
+        {
+            if let ContentCondition::Match(_) = last_content_condition_node.condition {
+                last_content_condition_node.is_reporting_target = true;
                 return;
             }
         }
@@ -26,6 +27,17 @@ fn set_reporting_target(rule: &mut Rule) {
         }
     }
     rule.is_reporting_target = true;
+}
+
+fn enumerate_regex_condition(condition: &mut RegexCondition, enumerator: &mut Enumerator) {
+    condition
+        .patterns
+        .iter_mut()
+        .for_each(|regex| regex.enumerate_with(enumerator));
+    condition
+        .excludes
+        .iter_mut()
+        .for_each(|regex| regex.enumerate_with(enumerator));
 }
 
 fn enumerate_items(
@@ -54,16 +66,16 @@ fn enumerate_items(
         path_condition
             .content_conditions
             .iter_mut()
-            .for_each(|content_condition| {
-                content_condition.number = count();
-                content_condition
-                    .patterns
-                    .iter_mut()
-                    .for_each(|regex| regex.enumerate_with(regex_enumerator));
-                content_condition
-                    .excludes
-                    .iter_mut()
-                    .for_each(|regex| regex.enumerate_with(regex_enumerator));
+            .for_each(|content_condition_node| {
+                content_condition_node.number = count();
+                match &mut content_condition_node.condition {
+                    ContentCondition::Match(regex_condition) => {
+                        enumerate_regex_condition(regex_condition, regex_enumerator)
+                    }
+                    ContentCondition::NoMatch(regex_condition) => {
+                        enumerate_regex_condition(regex_condition, regex_enumerator)
+                    }
+                }
             });
     });
 }

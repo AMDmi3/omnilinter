@@ -2,7 +2,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use crate::config::Config;
-use crate::ruleset::{ConditionLogic, Glob, GlobCondition, Regex, RegexCondition, Rule};
+use crate::ruleset::{
+    ConditionLogic, ContentCondition, ContentConditionNode, Glob, GlobCondition, Regex,
+    RegexCondition, Rule,
+};
 
 fn dump_glob(glob: &Glob) {
     print!("{}", glob.as_str());
@@ -21,20 +24,28 @@ fn dump_regex(regex: &Regex) {
     panic!("unable to dump regex {regex}, could not find suitable framing character");
 }
 
-fn dump_content_condition(content_condition: &RegexCondition) {
-    let directive = match content_condition.logic {
-        ConditionLogic::Positive => "match",
-        ConditionLogic::Negative => "nomatch",
-    };
-    print!("        {}", directive);
-    content_condition.patterns.iter().for_each(|pattern| {
+fn dump_regex_condition_args(regex_condition: &RegexCondition) {
+    regex_condition.patterns.iter().for_each(|regex| {
         print!(" ");
-        dump_regex(pattern);
+        dump_regex(regex);
     });
-    content_condition.excludes.iter().for_each(|pattern| {
+    regex_condition.excludes.iter().for_each(|regex| {
         print!(" !");
-        dump_regex(pattern);
+        dump_regex(regex);
     });
+}
+
+fn dump_content_condition(content_condition_node: &ContentConditionNode) {
+    match &content_condition_node.condition {
+        ContentCondition::Match(regex_condition) => {
+            print!("        match");
+            dump_regex_condition_args(&regex_condition);
+        }
+        ContentCondition::NoMatch(regex_condition) => {
+            print!("        nomatch");
+            dump_regex_condition_args(&regex_condition);
+        }
+    }
     println!();
 }
 
@@ -44,13 +55,13 @@ fn dump_path_condition(path_condition: &GlobCondition) {
         ConditionLogic::Negative => "nofiles",
     };
     print!("    {}", directive);
-    path_condition.patterns.iter().for_each(|pattern| {
+    path_condition.patterns.iter().for_each(|glob| {
         print!(" ");
-        dump_glob(pattern);
+        dump_glob(glob);
     });
-    path_condition.excludes.iter().for_each(|pattern| {
+    path_condition.excludes.iter().for_each(|glob| {
         print!(" !");
-        dump_glob(pattern);
+        dump_glob(glob);
     });
     println!();
     path_condition

@@ -120,7 +120,7 @@ pub struct GlobCondition {
     pub logic: ConditionLogic,
     pub patterns: Vec<Glob>,
     pub excludes: Vec<Glob>,
-    pub content_conditions: Vec<RegexCondition>,
+    pub content_conditions: Vec<ContentConditionNode>,
     pub is_reporting_target: bool,
 }
 
@@ -129,18 +129,41 @@ impl GlobCondition {
         !self
             .content_conditions
             .iter()
-            .any(|condition| condition.logic == ConditionLogic::Positive && !mask[condition.number])
+            .any(|condition_node| match condition_node.condition {
+                ContentCondition::Match(_) => !mask[condition_node.number],
+                _ => false,
+            })
     }
 }
 
 #[derive(Default)]
 #[cfg_attr(debug_assertions, derive(Debug))]
 pub struct RegexCondition {
-    pub number: usize,
-    pub logic: ConditionLogic,
     pub patterns: Vec<Regex>,
     pub excludes: Vec<Regex>,
+}
+
+#[cfg_attr(debug_assertions, derive(Debug))]
+pub enum ContentCondition {
+    Match(RegexCondition),
+    NoMatch(RegexCondition),
+}
+
+#[cfg_attr(debug_assertions, derive(Debug))]
+pub struct ContentConditionNode {
+    pub number: usize,
     pub is_reporting_target: bool,
+    pub condition: ContentCondition,
+}
+
+impl ContentConditionNode {
+    pub fn new(condition: ContentCondition) -> Self {
+        ContentConditionNode {
+            number: Default::default(),
+            is_reporting_target: Default::default(),
+            condition: condition,
+        }
+    }
 }
 
 #[derive(Default)]

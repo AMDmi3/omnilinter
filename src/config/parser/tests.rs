@@ -2,7 +2,22 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use crate::config::Config;
+use crate::ruleset::{ContentCondition, Regex};
 use testutils::lines;
+
+fn get_first_regex_pattern(config: &Config) -> &Regex {
+    match &config.ruleset.rules[0].path_conditions[0].content_conditions[0].condition {
+        ContentCondition::Match(regex_condition) => &regex_condition.patterns[0],
+        ContentCondition::NoMatch(regex_condition) => &regex_condition.patterns[0],
+    }
+}
+
+fn get_first_regex_exclude(config: &Config) -> &Regex {
+    match &config.ruleset.rules[0].path_conditions[0].content_conditions[0].condition {
+        ContentCondition::Match(regex_condition) => &regex_condition.excludes[0],
+        ContentCondition::NoMatch(regex_condition) => &regex_condition.excludes[0],
+    }
+}
 
 mod parse_rule_title {
     use super::*;
@@ -64,10 +79,7 @@ mod parse_regexp {
     fn whitespace() {
         let text = lines!["[]", "files *", "match /f o\to/"];
         let config = Config::from_str(text).unwrap();
-        assert_eq!(
-            config.ruleset.rules[0].path_conditions[0].content_conditions[0].patterns[0].as_str(),
-            "f o\to"
-        );
+        assert_eq!(get_first_regex_pattern(&config).as_str(), "f o\to");
     }
 
     #[test]
@@ -81,24 +93,15 @@ mod parse_regexp {
             "match ,foo,"
         ];
         let config = Config::from_str(text).unwrap();
-        assert_eq!(
-            config.ruleset.rules[0].path_conditions[0].content_conditions[0].patterns[0].as_str(),
-            "foo"
-        );
-        assert_eq!(
-            config.ruleset.rules[1].path_conditions[0].content_conditions[0].patterns[0].as_str(),
-            "foo"
-        );
+        assert_eq!(get_first_regex_pattern(&config).as_str(), "foo");
+        assert_eq!(get_first_regex_pattern(&config).as_str(), "foo");
     }
 
     #[test]
     fn character_classes_support() {
         let text = lines!["[]", "files *", r"match /\s+/"];
         let config = Config::from_str(text).unwrap();
-        assert!(
-            config.ruleset.rules[0].path_conditions[0].content_conditions[0].patterns[0]
-                .is_match(" \t")
-        );
+        assert!(get_first_regex_pattern(&config).is_match(" \t"));
     }
 
     #[test]
@@ -106,10 +109,7 @@ mod parse_regexp {
         // XXX: this is incompre this out; consider disallowing escaping in regexps to avoid confusion
         let text = lines!["[]", "files *", r"match /a\\c/"];
         let config = Config::from_str(text).unwrap();
-        assert_eq!(
-            config.ruleset.rules[0].path_conditions[0].content_conditions[0].patterns[0].as_str(),
-            r"a\\c"
-        );
+        assert_eq!(get_first_regex_pattern(&config).as_str(), r"a\\c");
     }
 
     #[test]
@@ -131,30 +131,21 @@ mod parse_regexp {
     fn paired_framing_characters() {
         let text = lines!["[]", "files *", "match (foo)"];
         let config = Config::from_str(text).unwrap();
-        assert_eq!(
-            config.ruleset.rules[0].path_conditions[0].content_conditions[0].patterns[0].as_str(),
-            "foo"
-        );
+        assert_eq!(get_first_regex_pattern(&config).as_str(), "foo");
     }
 
     #[test]
     fn unicode_framing() {
         let text = lines!["[]", "files *", "match 🚧foo🚧"];
         let config = Config::from_str(text).unwrap();
-        assert_eq!(
-            config.ruleset.rules[0].path_conditions[0].content_conditions[0].patterns[0].as_str(),
-            "foo"
-        );
+        assert_eq!(get_first_regex_pattern(&config).as_str(), "foo");
     }
 
     #[test]
     fn exclude() {
         let text = lines!["[]", "files *", r"match /\s+/ !/abc/"];
         let config = Config::from_str(text).unwrap();
-        assert_eq!(
-            config.ruleset.rules[0].path_conditions[0].content_conditions[0].excludes[0].as_str(),
-            "abc"
-        );
+        assert_eq!(get_first_regex_exclude(&config).as_str(), "abc");
     }
 }
 
