@@ -78,7 +78,6 @@ fn apply_content_rules(
     let mut matched_lines: Vec<Vec<u64>> = vec![Default::default(); global_rule_statuses.len()];
 
     let mut line_number: u64 = 0;
-    let mut last_line_was_empty = false;
     for line in reader.lines() {
         let line = line?;
 
@@ -121,16 +120,9 @@ fn apply_content_rules(
         }
 
         line_number += 1;
-        last_line_was_empty = line.is_empty();
     }
 
-    let lines_count = if last_line_was_empty {
-        line_number - 1
-    } else {
-        line_number
-    };
-
-    apply_file_line_conditions(lines_count, &mut rules_with_conditions);
+    apply_file_line_conditions(line_number, &mut rules_with_conditions);
 
     rules_with_conditions.iter().for_each(|(rule, condition)| {
         if !condition.are_all_positive_conditions_satisfied(&local_condition_statuses) {
