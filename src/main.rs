@@ -110,6 +110,22 @@ fn get_default_config_path() -> Option<PathBuf> {
     None
 }
 
+fn read_config(args: &Args) -> Result<Config, Error> {
+    if !args.config_paths.is_empty() {
+        let mut config = Config::new();
+        for path in &args.config_paths {
+            config.merge_from(Config::from_file(path)?);
+        }
+        Ok(config)
+    } else {
+        if let Some(path) = get_default_config_path() {
+            Ok(Config::from_file(&path)?)
+        } else {
+            bail!("config file is neither specified on the command line, nor present in the application config directory");
+        }
+    }
+}
+
 fn main() {
     let args = Args::parse();
 
@@ -124,19 +140,7 @@ fn main() {
         _ => {}
     }
 
-    let default_config_path = get_default_config_path();
-
-    let mut config = Config::new();
-
-    if !args.config_paths.is_empty() {
-        args.config_paths.iter().for_each(|path| {
-            config.merge_from(Config::from_file(path).unwrap());
-        });
-    } else if let Some(path) = default_config_path {
-        config.merge_from(Config::from_file(&path).unwrap());
-    } else {
-        eprintln!("Error: config file is neither specified on the command line, nor present in the application config directory");
-    }
+    let mut config = read_config(&args).unwrap();
 
     if config.ruleset.rules.is_empty() {
         eprintln!("Warning: ruleset is empty");
