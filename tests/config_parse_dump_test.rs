@@ -6,7 +6,7 @@ use std::fs::{read_to_string, File};
 use std::io::Write;
 use std::path::Path;
 use std::process::Command;
-use tempdir::TempDir;
+use tempfile::tempdir;
 
 fn parse_dump_config(input_config: &Path) -> String {
     let output = &Command::cargo_bin("omnilinter")
@@ -41,7 +41,7 @@ fn with_omnilinter_config() {
     // would reformat is. So instead of comparing with original,
     // compare dump of the original config with that very dump
     // parsed and dumped again
-    let temp_dir = TempDir::new("omnilinter-test").unwrap();
+    let temp_dir = tempdir().unwrap();
 
     let input_path = Path::new(".omnilinter.conf");
     let output_path = temp_dir.path().join("omnilinter.conf");

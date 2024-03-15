@@ -12,7 +12,7 @@ use std::io::Write;
 use std::path::Path;
 use std::process::Command;
 use std::str::from_utf8;
-use tempdir::TempDir;
+use tempfile::{TempDir, tempdir};
 
 #[macro_export]
 macro_rules! lines {
@@ -47,7 +47,7 @@ pub struct TestCase {
 
 impl TestCase {
     pub fn new_for_json_tests() -> Self {
-        let temp_dir = TempDir::new("omnilinter-test").unwrap();
+        let temp_dir = tempdir().unwrap();
 
         fs::create_dir(temp_dir.path().join("root")).unwrap();
 
@@ -63,7 +63,7 @@ impl TestCase {
     }
 
     pub fn new_for_stdout_tests() -> Self {
-        let temp_dir = TempDir::new("omnilinter-test").unwrap();
+        let temp_dir = tempdir().unwrap();
 
         fs::create_dir(temp_dir.path().join("root")).unwrap();
 
