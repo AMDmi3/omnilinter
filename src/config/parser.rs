@@ -189,86 +189,82 @@ fn parse_rule(
     Ok(rule)
 }
 
-impl Config {
-    #[allow(dead_code)]
-    pub fn from_str(s: &str) -> Result<Config, Error> {
-        Self::from_str_with_desc(s, "???")
-    }
+fn parse_file(s: &str, source_desc: &str) -> Result<Config, PestError> {
+    let mut config: Config = Default::default();
 
-    pub fn from_str_with_desc(s: &str, source_desc: &str) -> Result<Config, Error> {
-        let mut config: Config = Default::default();
-
-        let file = ConfigParser::parse(Rule::file, s)
-            .map_err(|err| {
-                err.renamed_rules(|parser_rule| match *parser_rule {
-                    Rule::EOI => "end of file".to_owned(),
-                    Rule::config_directive_root => "\"root\" directive".to_owned(),
-                    Rule::excluded_glob => {
-                        "exclusion glob pattern prefixed with exclamation mark".to_owned()
-                    }
-                    Rule::excluded_regexp => {
-                        "exclusion regexp pattern prefixed with exclamation mark".to_owned()
-                    }
-                    Rule::included_glob => "glob pattern".to_owned(),
-                    Rule::included_regexp => "regexp pattern".to_owned(),
-                    Rule::rule_directive_files_inner => "\"files\" condition".to_owned(),
-                    Rule::rule_directive_match => "\"match\" condition".to_owned(),
-                    Rule::rule_directive_nofiles => "\"nofiles\" condition".to_owned(),
-                    Rule::rule_directive_nomatch => "\"nomatch\" condition".to_owned(),
-                    Rule::rule_directive_tags => "\"tags\" directive".to_owned(),
-                    Rule::rule_title_outer => "rule title in brackets".to_owned(),
-                    Rule::simple_glob => "glob pattern".to_owned(),
-                    // XXX: how to make pest always descend into main rule?
-                    Rule::file => "omnilinter configuration file".to_owned(),
-                    other => format!("{:?}", other),
-                })
-                .with_path(source_desc)
-            })?
-            .next()
-            .unwrap();
-
-        for item in file.into_inner() {
-            match item.as_rule() {
-                Rule::config_directive_root => {
-                    let root_pattern = item.into_inner().next().unwrap();
-                    let root_pattern_text = root_pattern.as_str();
-                    let mut root_paths = Vec::new();
-                    for path_or_error in glob::glob(root_pattern_text).map_err(|e| {
-                        glob_pattern_error_into_pest_error(e, &root_pattern).with_path(source_desc)
-                    })? {
-                        // XXX: convert this loop into try_collect when stabilized
-                        root_paths.push(
-                            path_or_error
-                                .map_err(|e| {
-                                    glob_error_into_pest_error(e, &root_pattern)
-                                        .with_path(source_desc)
-                                })
-                                .with_context(|| "failed to expand root glob".to_owned())?,
-                        );
-                    }
-                    root_paths.sort();
-                    config.roots.append(&mut root_paths);
+    let file = ConfigParser::parse(Rule::file, s)
+        .map_err(|err| {
+            err.renamed_rules(|parser_rule| match *parser_rule {
+                Rule::EOI => "end of file".to_owned(),
+                Rule::config_directive_root => "\"root\" directive".to_owned(),
+                Rule::excluded_glob => {
+                    "exclusion glob pattern prefixed with exclamation mark".to_owned()
                 }
-                Rule::rule => {
-                    config.ruleset.rules.push(
-                        parse_rule(item, config.ruleset.rules.len(), source_desc)
-                            .map_err(|e| e.with_path(source_desc))?,
+                Rule::excluded_regexp => {
+                    "exclusion regexp pattern prefixed with exclamation mark".to_owned()
+                }
+                Rule::included_glob => "glob pattern".to_owned(),
+                Rule::included_regexp => "regexp pattern".to_owned(),
+                Rule::rule_directive_files_inner => "\"files\" condition".to_owned(),
+                Rule::rule_directive_match => "\"match\" condition".to_owned(),
+                Rule::rule_directive_nofiles => "\"nofiles\" condition".to_owned(),
+                Rule::rule_directive_nomatch => "\"nomatch\" condition".to_owned(),
+                Rule::rule_directive_tags => "\"tags\" directive".to_owned(),
+                Rule::rule_title_outer => "rule title in brackets".to_owned(),
+                Rule::simple_glob => "glob pattern".to_owned(),
+                // XXX: how to make pest always descend into main rule?
+                Rule::file => "omnilinter configuration file".to_owned(),
+                other => format!("{:?}", other),
+            })
+        })?
+        .next()
+        .unwrap();
+
+    for item in file.into_inner() {
+        match item.as_rule() {
+            Rule::config_directive_root => {
+                let root_pattern = item.into_inner().next().unwrap();
+                let root_pattern_text = root_pattern.as_str();
+                let mut root_paths = Vec::new();
+                for path_or_error in glob::glob(root_pattern_text)
+                    .map_err(|e| glob_pattern_error_into_pest_error(e, &root_pattern))?
+                {
+                    // XXX: convert this loop into try_collect when stabilized
+                    root_paths.push(
+                        path_or_error.map_err(|e| glob_error_into_pest_error(e, &root_pattern))?,
                     );
                 }
-                Rule::EOI => (),
-                _ => unreachable!("unexpected parser rule type in from_str {:#?}", item),
+                root_paths.sort();
+                config.roots.append(&mut root_paths);
             }
+            Rule::rule => {
+                config.ruleset.rules.push(parse_rule(
+                    item,
+                    config.ruleset.rules.len(),
+                    source_desc,
+                )?);
+            }
+            Rule::EOI => (),
+            _ => unreachable!("unexpected parser rule type in from_str {:#?}", item),
         }
+    }
 
-        Ok(config)
+    Ok(config)
+}
+
+impl Config {
+    #[cfg(test)]
+    pub fn from_str(s: &str) -> Result<Config, Error> {
+        Ok(parse_file(s, "???")?)
     }
 
     pub fn from_file(path: &Path) -> Result<Config, Error> {
-        Self::from_str_with_desc(
-            &fs::read_to_string(path)
-                .with_context(|| format!("failed to read config file {}", path.display()))?,
-            &path.display().to_string(),
-        )
-        .with_context(|| format!("failed to parse config file {}", path.display()))
+        let path = path.display().to_string();
+        let content = fs::read_to_string(&path)
+            .with_context(|| format!("failed to read config file {}", path))?;
+
+        parse_file(&content, &path)
+            .map_err(|e| e.with_path(&path))
+            .with_context(|| format!("failed to parse config file {}", path))
     }
 }
