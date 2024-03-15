@@ -1,6 +1,9 @@
 // SPDX-FileCopyrightText: Copyright 2024 Dmitry Marakasov <amdmi3@amdmi3.ru>
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#![allow(clippy::result_large_err)] // config parser is not performance critical
+#![allow(clippy::empty_docs)] // fires on ConfigParser, probably comes from pest
+
 #[cfg(test)]
 mod tests;
 
