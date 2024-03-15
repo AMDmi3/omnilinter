@@ -36,6 +36,10 @@ included_glob = @{ !("!") ~ concat_str }
 excluded_glob = @{ "!" ~ simple_glob }
 globs_list_with_exclusions = { included_glob ~ included_glob* ~ excluded_glob* }
 
+range_operation = @{ "<>" | ">=" | "<=" | ">" | "<" | "==" | "=" | "!=" }
+number = @{ ASCII_DIGIT+ }
+numeric_condition = { range_operation ~ number }
+
 regexp_char = {
 	!("\n" | "\r" | PEEK) ~ ANY
 }
@@ -53,11 +57,12 @@ rule_directive_tags = { "tags" ~ tags_list ~ NEWLINE+ }
 rule_directive_files_inner = {"files" ~ globs_list_with_exclusions ~ NEWLINE+ }
 rule_directive_files = {
 	rule_directive_files_inner ~
-	(rule_directive_match | rule_directive_nomatch)*
+	(rule_directive_match | rule_directive_nomatch | rule_directive_size)*
 }
 rule_directive_nofiles = { "nofiles" ~ globs_list_with_exclusions ~ NEWLINE+ }
 rule_directive_match = { "match" ~ regexps_list_with_exclusions ~ NEWLINE+ }
 rule_directive_nomatch = { "nomatch" ~ regexps_list_with_exclusions ~ NEWLINE+ }
+rule_directive_size = { "size" ~ numeric_condition ~ NEWLINE+ }
 
 rule_directive = _{
 	rule_directive_files |

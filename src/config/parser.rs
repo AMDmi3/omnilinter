@@ -11,7 +11,7 @@ use crate::config::Config;
 use crate::ruleset::Rule as RulesetRule;
 use crate::ruleset::{
     ConditionLogic, ContentCondition, ContentConditionNode, Glob, GlobCondition, Regex,
-    RegexCondition,
+    RegexCondition, SizeCondition, SizeOperator,
 };
 use anyhow::{Context, Error};
 use pest::Parser;
@@ -108,6 +108,30 @@ fn parse_regexes_condition(pair: pest::iterators::Pair<Rule>) -> Result<RegexCon
     Ok(cond)
 }
 
+fn parse_size_condition(pair: pest::iterators::Pair<Rule>) -> Result<SizeCondition, PestError> {
+    let mut iter = pair.into_inner().into_iter();
+    let operator = iter.next().unwrap();
+    let value = iter.next().unwrap();
+
+    Ok(SizeCondition {
+        operator: match operator.as_str() {
+            ">=" => SizeOperator::GreaterEqual,
+            ">" => SizeOperator::Greater,
+            "<=" => SizeOperator::LessEqual,
+            "<" => SizeOperator::Less,
+            "=" => SizeOperator::Equal,
+            "==" => SizeOperator::Equal,
+            "!=" => SizeOperator::NotEqual,
+            "<>" => SizeOperator::NotEqual,
+            other => unreachable!("unexpected size operator {other}",),
+        },
+        value: value
+            .as_str()
+            .parse()
+            .map_err(|e| error_into_pest_error(e, &value))?,
+    })
+}
+
 fn parse_files_condition(pair: pest::iterators::Pair<Rule>) -> Result<GlobCondition, PestError> {
     let mut condition: GlobCondition = Default::default();
 
@@ -129,6 +153,13 @@ fn parse_files_condition(pair: pest::iterators::Pair<Rule>) -> Result<GlobCondit
             Rule::rule_directive_nomatch => {
                 condition.content_conditions.push(ContentConditionNode::new(
                     ContentCondition::NoMatch(parse_regexes_condition(
+                        item.into_inner().next().unwrap(),
+                    )?),
+                ));
+            }
+            Rule::rule_directive_size => {
+                condition.content_conditions.push(ContentConditionNode::new(
+                    ContentCondition::Size(parse_size_condition(
                         item.into_inner().next().unwrap(),
                     )?),
                 ));

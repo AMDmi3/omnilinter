@@ -4,7 +4,7 @@
 use crate::config::Config;
 use crate::ruleset::{
     ConditionLogic, ContentCondition, ContentConditionNode, Glob, GlobCondition, Regex,
-    RegexCondition, Rule,
+    RegexCondition, Rule, SizeOperator,
 };
 
 fn dump_glob(glob: &Glob) {
@@ -44,6 +44,17 @@ fn dump_content_condition(content_condition_node: &ContentConditionNode) {
         ContentCondition::NoMatch(regex_condition) => {
             print!("        nomatch");
             dump_regex_condition_args(&regex_condition);
+        }
+        ContentCondition::Size(size_condition) => {
+            let operator = match size_condition.operator {
+                SizeOperator::GreaterEqual => ">=",
+                SizeOperator::Greater => ">",
+                SizeOperator::LessEqual => "<=",
+                SizeOperator::Less => "<",
+                SizeOperator::Equal => "==",
+                SizeOperator::NotEqual => "!=",
+            };
+            print!("        size {} {}", operator, size_condition.value);
         }
     }
     println!();

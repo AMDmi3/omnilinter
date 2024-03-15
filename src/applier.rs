@@ -5,7 +5,7 @@ mod matching_caches;
 
 use crate::r#match::{Match, MatchResult};
 use crate::ruleset::compile::CompiledRuleset;
-use crate::ruleset::{ConditionLogic, ContentCondition, GlobCondition, Rule};
+use crate::ruleset::{ConditionLogic, ContentCondition, GlobCondition, Rule, SizeOperator};
 use matching_caches::{GlobMatchingCache, RegexMatchingCache};
 use std::collections::HashMap;
 use std::fs::File;
@@ -13,6 +13,37 @@ use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use walkdir::WalkDir;
+
+fn apply_file_metadata_conditions(
+    root: &Path,
+    path: &Rc<PathBuf>,
+    rules_with_conditions: &mut Vec<(&Rule, &GlobCondition)>,
+) -> Result<(), std::io::Error> {
+    let size = std::fs::metadata(root.join(path.as_path()))?.len();
+
+    rules_with_conditions.retain(|(_, path_condition)| {
+        for content_condition_node in &path_condition.content_conditions {
+            match &content_condition_node.condition {
+                ContentCondition::Size(size_condition) => {
+                    if !match size_condition.operator {
+                        SizeOperator::GreaterEqual => size >= size_condition.value,
+                        SizeOperator::Greater => size > size_condition.value,
+                        SizeOperator::LessEqual => size <= size_condition.value,
+                        SizeOperator::Less => size < size_condition.value,
+                        SizeOperator::Equal => size == size_condition.value,
+                        SizeOperator::NotEqual => size != size_condition.value,
+                    } {
+                        return false;
+                    }
+                }
+                _ => {}
+            }
+        }
+        true
+    });
+
+    Ok(())
+}
 
 fn apply_content_rules(
     ruleset: &CompiledRuleset,
@@ -22,6 +53,12 @@ fn apply_content_rules(
     global_rule_statuses: &mut [RuleMatchStatus],
     global_condition_statuses: &mut [bool],
 ) -> Result<(), std::io::Error> {
+    apply_file_metadata_conditions(root, &path, &mut rules_with_conditions)?;
+
+    if rules_with_conditions.is_empty() {
+        return Ok(());
+    }
+
     let file = File::open(root.join(path.as_path()))?;
     let reader = BufReader::new(file);
 
@@ -56,6 +93,7 @@ fn apply_content_rules(
                             num_satisfied_content_conditions += 1;
                         }
                     }
+                    _ => {}
                 }
             }
 

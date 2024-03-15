@@ -15,5 +15,6 @@ mod path_conditions;
 mod premature;
 mod regexp_patterns;
 mod reporting_target;
+mod size_condition;
 mod stdout;
 mod tags;

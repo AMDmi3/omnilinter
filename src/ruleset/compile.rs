@@ -75,6 +75,7 @@ fn enumerate_items(
                     ContentCondition::NoMatch(regex_condition) => {
                         enumerate_regex_condition(regex_condition, regex_enumerator)
                     }
+                    ContentCondition::Size(_) => {}
                 }
             });
     });

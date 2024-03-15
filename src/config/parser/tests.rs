@@ -2,13 +2,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use crate::config::Config;
-use crate::ruleset::{ContentCondition, Regex};
+use crate::ruleset::{ContentCondition, Regex, SizeCondition, SizeOperator};
 use testutils::lines;
 
 fn get_first_regex_pattern(config: &Config) -> &Regex {
     match &config.ruleset.rules[0].path_conditions[0].content_conditions[0].condition {
         ContentCondition::Match(regex_condition) => &regex_condition.patterns[0],
         ContentCondition::NoMatch(regex_condition) => &regex_condition.patterns[0],
+        _ => panic!(),
     }
 }
 
@@ -16,6 +17,14 @@ fn get_first_regex_exclude(config: &Config) -> &Regex {
     match &config.ruleset.rules[0].path_conditions[0].content_conditions[0].condition {
         ContentCondition::Match(regex_condition) => &regex_condition.excludes[0],
         ContentCondition::NoMatch(regex_condition) => &regex_condition.excludes[0],
+        _ => panic!(),
+    }
+}
+
+fn get_first_size_condition(config: &Config) -> &SizeCondition {
+    match &config.ruleset.rules[0].path_conditions[0].content_conditions[0].condition {
+        ContentCondition::Size(size_condition) => &size_condition,
+        _ => panic!(),
     }
 }
 
@@ -146,6 +155,32 @@ mod parse_regexp {
         let text = lines!["[]", "files *", r"match /\s+/ !/abc/"];
         let config = Config::from_str(text).unwrap();
         assert_eq!(get_first_regex_exclude(&config).as_str(), "abc");
+    }
+}
+
+mod parse_size_condition {
+    use super::*;
+
+    #[test]
+    fn with_space() {
+        let text = lines!["[]", "files *", "size >= 123"];
+        let config = Config::from_str(text).unwrap();
+        assert_eq!(
+            get_first_size_condition(&config).operator,
+            SizeOperator::GreaterEqual
+        );
+        assert_eq!(get_first_size_condition(&config).value, 123);
+    }
+
+    #[test]
+    fn without_space() {
+        let text = lines!["[]", "files *", "size>=123"];
+        let config = Config::from_str(text).unwrap();
+        assert_eq!(
+            get_first_size_condition(&config).operator,
+            SizeOperator::GreaterEqual
+        );
+        assert_eq!(get_first_size_condition(&config).value, 123);
     }
 }
 
