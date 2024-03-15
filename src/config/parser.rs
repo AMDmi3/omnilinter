@@ -39,16 +39,10 @@ fn glob_pattern_error_into_pest_error(
     )
 }
 
-fn regex_error_into_pest_error(e: regex::Error, item: &pest::iterators::Pair<Rule>) -> PestError {
-    PestError::new_from_span(
-        pest::error::ErrorVariant::<Rule>::CustomError {
-            message: e.to_string(),
-        },
-        item.as_span(),
-    )
-}
-
-fn glob_error_into_pest_error(e: glob::GlobError, item: &pest::iterators::Pair<Rule>) -> PestError {
+fn error_into_pest_error<T: std::error::Error>(
+    e: T,
+    item: &pest::iterators::Pair<Rule>,
+) -> PestError {
     PestError::new_from_span(
         pest::error::ErrorVariant::<Rule>::CustomError {
             message: e.to_string(),
@@ -104,13 +98,11 @@ fn parse_regexes_condition(pair: pest::iterators::Pair<Rule>) -> Result<RegexCon
     for item in pair.into_inner() {
         let item_text = item.as_str();
         if let Some(item_text) = item_text.strip_prefix('!') {
-            cond.excludes.push(
-                parse_regex_str(item_text).map_err(|e| regex_error_into_pest_error(e, &item))?,
-            );
+            cond.excludes
+                .push(parse_regex_str(item_text).map_err(|e| error_into_pest_error(e, &item))?);
         } else {
-            cond.patterns.push(
-                parse_regex_str(item_text).map_err(|e| regex_error_into_pest_error(e, &item))?,
-            );
+            cond.patterns
+                .push(parse_regex_str(item_text).map_err(|e| error_into_pest_error(e, &item))?);
         }
     }
     Ok(cond)
@@ -232,9 +224,8 @@ fn parse_file(s: &str, source_desc: &str) -> Result<Config, PestError> {
                     .map_err(|e| glob_pattern_error_into_pest_error(e, &root_pattern))?
                 {
                     // XXX: convert this loop into try_collect when stabilized
-                    root_paths.push(
-                        path_or_error.map_err(|e| glob_error_into_pest_error(e, &root_pattern))?,
-                    );
+                    root_paths
+                        .push(path_or_error.map_err(|e| error_into_pest_error(e, &root_pattern))?);
                 }
                 root_paths.sort();
                 config.roots.append(&mut root_paths);
