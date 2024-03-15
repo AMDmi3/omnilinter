@@ -119,12 +119,10 @@ fn read_config(args: &Args) -> Result<Config, Error> {
             config.merge_from(Config::from_file(path)?);
         }
         Ok(config)
+    } else if let Some(path) = get_default_config_path() {
+        Ok(Config::from_file(&path)?)
     } else {
-        if let Some(path) = get_default_config_path() {
-            Ok(Config::from_file(&path)?)
-        } else {
-            bail!("config file is neither specified on the command line, nor present in the application config directory");
-        }
+        bail!("config file is neither specified on the command line, nor present in the application config directory");
     }
 }
 
