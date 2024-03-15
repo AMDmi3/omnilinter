@@ -13,9 +13,11 @@ use crate::format_text::Palette;
 use crate::formatters::json as format_json;
 use crate::formatters::text as format_text;
 use crate::r#match::MatchResult;
+use anyhow::{bail, Error};
 use clap::{Parser, ValueEnum};
 use std::collections::HashSet;
 use std::path::PathBuf;
+use std::process::ExitCode;
 
 const CONFIG_FILE_NAME: &str = "omnilinter.conf";
 
@@ -78,7 +80,7 @@ struct Args {
 
     /// If any matches are found, exit with given code
     #[arg(long, value_name = "EXITCODE")]
-    error_exitcode: Option<i32>,
+    error_exitcode: Option<u8>,
 
     /// Number of target directories to process simultaneously
     #[arg(short = 'j', long = "jobs", value_name = "JOBS")]
@@ -126,12 +128,12 @@ fn read_config(args: &Args) -> Result<Config, Error> {
     }
 }
 
-fn main() {
+fn main() -> Result<ExitCode, Error> {
     let args = Args::parse();
 
     if let Some(config_to_dump) = args.config_to_dump {
         Config::from_file(&config_to_dump).unwrap().dump();
-        return;
+        return Ok(ExitCode::SUCCESS);
     }
 
     match args.color_mode {
@@ -140,10 +142,10 @@ fn main() {
         _ => {}
     }
 
-    let mut config = read_config(&args).unwrap();
+    let mut config = read_config(&args)?;
 
     if config.ruleset.rules.is_empty() {
-        eprintln!("Warning: ruleset is empty");
+        bail!("ruleset is empty");
     }
 
     let roots: Vec<_> = if args.roots.is_empty() {
@@ -223,7 +225,8 @@ fn main() {
 
     if let Some(error_exitcode) = args.error_exitcode {
         if !result.is_empty() {
-            std::process::exit(error_exitcode);
+            return Ok(error_exitcode.into());
         }
     }
+    Ok(ExitCode::SUCCESS)
 }
