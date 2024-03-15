@@ -4,7 +4,7 @@
 use crate::config::Config;
 use crate::ruleset::{
     ConditionLogic, ContentCondition, ContentConditionNode, Glob, GlobCondition, Regex,
-    RegexCondition, Rule, SizeOperator,
+    RegexCondition, Rule, SizeCondition, SizeOperator,
 };
 
 fn dump_glob(glob: &Glob) {
@@ -35,6 +35,21 @@ fn dump_regex_condition_args(regex_condition: &RegexCondition) {
     });
 }
 
+fn dump_size_condition_args(size_condition: &SizeCondition) {
+    print!(
+        " {} {}",
+        match size_condition.operator {
+            SizeOperator::GreaterEqual => ">=",
+            SizeOperator::Greater => ">",
+            SizeOperator::LessEqual => "<=",
+            SizeOperator::Less => "<",
+            SizeOperator::Equal => "==",
+            SizeOperator::NotEqual => "!=",
+        },
+        size_condition.value
+    );
+}
+
 fn dump_content_condition(content_condition_node: &ContentConditionNode) {
     match &content_condition_node.condition {
         ContentCondition::Match(regex_condition) => {
@@ -46,15 +61,12 @@ fn dump_content_condition(content_condition_node: &ContentConditionNode) {
             dump_regex_condition_args(&regex_condition);
         }
         ContentCondition::Size(size_condition) => {
-            let operator = match size_condition.operator {
-                SizeOperator::GreaterEqual => ">=",
-                SizeOperator::Greater => ">",
-                SizeOperator::LessEqual => "<=",
-                SizeOperator::Less => "<",
-                SizeOperator::Equal => "==",
-                SizeOperator::NotEqual => "!=",
-            };
-            print!("        size {} {}", operator, size_condition.value);
+            print!("        size");
+            dump_size_condition_args(&size_condition);
+        }
+        ContentCondition::Lines(size_condition) => {
+            print!("        lines");
+            dump_size_condition_args(&size_condition);
         }
     }
     println!();

@@ -76,6 +76,7 @@ fn enumerate_items(
                         enumerate_regex_condition(regex_condition, regex_enumerator)
                     }
                     ContentCondition::Size(_) => {}
+                    ContentCondition::Lines(_) => {}
                 }
             });
     });

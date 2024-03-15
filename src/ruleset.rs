@@ -160,11 +160,25 @@ pub struct SizeCondition {
     pub value: u64,
 }
 
+impl SizeCondition {
+    pub fn check(&self, value: u64) -> bool {
+        match self.operator {
+            SizeOperator::GreaterEqual => value >= self.value,
+            SizeOperator::Greater => value > self.value,
+            SizeOperator::LessEqual => value <= self.value,
+            SizeOperator::Less => value < self.value,
+            SizeOperator::Equal => value == self.value,
+            SizeOperator::NotEqual => value != self.value,
+        }
+    }
+}
+
 #[cfg_attr(debug_assertions, derive(Debug))]
 pub enum ContentCondition {
     Match(RegexCondition),
     NoMatch(RegexCondition),
     Size(SizeCondition),
+    Lines(SizeCondition),
 }
 
 #[cfg_attr(debug_assertions, derive(Debug))]

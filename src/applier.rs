@@ -5,7 +5,7 @@ mod matching_caches;
 
 use crate::r#match::{Match, MatchResult};
 use crate::ruleset::compile::CompiledRuleset;
-use crate::ruleset::{ConditionLogic, ContentCondition, GlobCondition, Rule, SizeOperator};
+use crate::ruleset::{ConditionLogic, ContentCondition, GlobCondition, Rule};
 use matching_caches::{GlobMatchingCache, RegexMatchingCache};
 use std::collections::HashMap;
 use std::fs::File;
@@ -25,14 +25,7 @@ fn apply_file_metadata_conditions(
         for content_condition_node in &path_condition.content_conditions {
             match &content_condition_node.condition {
                 ContentCondition::Size(size_condition) => {
-                    if !match size_condition.operator {
-                        SizeOperator::GreaterEqual => size >= size_condition.value,
-                        SizeOperator::Greater => size > size_condition.value,
-                        SizeOperator::LessEqual => size <= size_condition.value,
-                        SizeOperator::Less => size < size_condition.value,
-                        SizeOperator::Equal => size == size_condition.value,
-                        SizeOperator::NotEqual => size != size_condition.value,
-                    } {
+                    if !size_condition.check(size) {
                         return false;
                     }
                 }
@@ -43,6 +36,25 @@ fn apply_file_metadata_conditions(
     });
 
     Ok(())
+}
+
+fn apply_file_line_conditions(
+    num_lines: u64,
+    rules_with_conditions: &mut Vec<(&Rule, &GlobCondition)>,
+) {
+    rules_with_conditions.retain(|(_, path_condition)| {
+        for content_condition_node in &path_condition.content_conditions {
+            match &content_condition_node.condition {
+                ContentCondition::Lines(size_condition) => {
+                    if !size_condition.check(num_lines) {
+                        return false;
+                    }
+                }
+                _ => {}
+            }
+        }
+        true
+    });
 }
 
 fn apply_content_rules(
@@ -65,7 +77,9 @@ fn apply_content_rules(
     let mut local_condition_statuses: Vec<bool> = vec![false; global_condition_statuses.len()];
     let mut matched_lines: Vec<Vec<usize>> = vec![Default::default(); global_rule_statuses.len()];
 
-    for (line_number, line) in reader.lines().enumerate() {
+    let mut line_number: u64 = 0;
+    let mut last_line_was_empty = false;
+    for line in reader.lines() {
         let line = line?;
 
         let mut matching_cache = RegexMatchingCache::new(&line, ruleset.regexes_count);
@@ -85,7 +99,7 @@ fn apply_content_rules(
                         if content_condition_node.is_reporting_target {
                             if matching_cache.check_condition_match(regex_condition) {
                                 *is_matched = true;
-                                matched_lines[rule.number].push(line_number);
+                                matched_lines[rule.number].push(line_number.try_into().unwrap());
                             }
                         } else if !*is_matched {
                             *is_matched = matching_cache.check_condition_match(regex_condition);
@@ -105,7 +119,18 @@ fn apply_content_rules(
         if rules_with_conditions.is_empty() {
             break;
         }
+
+        line_number += 1;
+        last_line_was_empty = line.is_empty();
     }
+
+    let lines_count = if last_line_was_empty {
+        line_number - 1
+    } else {
+        line_number
+    };
+
+    apply_file_line_conditions(lines_count, &mut rules_with_conditions);
 
     rules_with_conditions.iter().for_each(|(rule, condition)| {
         if !condition.are_all_positive_conditions_satisfied(&local_condition_statuses) {

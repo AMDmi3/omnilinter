@@ -164,6 +164,13 @@ fn parse_files_condition(pair: pest::iterators::Pair<Rule>) -> Result<GlobCondit
                     )?),
                 ));
             }
+            Rule::rule_directive_lines => {
+                condition.content_conditions.push(ContentConditionNode::new(
+                    ContentCondition::Lines(parse_size_condition(
+                        item.into_inner().next().unwrap(),
+                    )?),
+                ));
+            }
             _ => unreachable!(
                 "unexpected parser rule type in parse_files_condition {:#?}",
                 item

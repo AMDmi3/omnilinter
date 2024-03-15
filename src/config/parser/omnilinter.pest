@@ -57,12 +57,13 @@ rule_directive_tags = { "tags" ~ tags_list ~ NEWLINE+ }
 rule_directive_files_inner = {"files" ~ globs_list_with_exclusions ~ NEWLINE+ }
 rule_directive_files = {
 	rule_directive_files_inner ~
-	(rule_directive_match | rule_directive_nomatch | rule_directive_size)*
+	(rule_directive_match | rule_directive_nomatch | rule_directive_size | rule_directive_lines)*
 }
 rule_directive_nofiles = { "nofiles" ~ globs_list_with_exclusions ~ NEWLINE+ }
 rule_directive_match = { "match" ~ regexps_list_with_exclusions ~ NEWLINE+ }
 rule_directive_nomatch = { "nomatch" ~ regexps_list_with_exclusions ~ NEWLINE+ }
 rule_directive_size = { "size" ~ numeric_condition ~ NEWLINE+ }
+rule_directive_lines = { "lines" ~ numeric_condition ~ NEWLINE+ }
 
 rule_directive = _{
 	rule_directive_files |
