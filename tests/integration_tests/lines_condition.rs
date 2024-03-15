@@ -18,7 +18,6 @@ fn line_counting() {
         .assert_matches(vec!["a"]);
 }
 
-
 #[test]
 fn greater_equal_matching() {
     TestCase::new_for_json_tests()
