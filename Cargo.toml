@@ -22,6 +22,7 @@ default = ["matching-cache", "multithreading"]
 # It may make sense to drop it and simplify the code if it doesn't really help.
 matching-cache = []
 multithreading = ["dep:rayon"]
+coverage = []
 
 [dependencies]
 anyhow = "1.0.81"

@@ -46,7 +46,7 @@ jobs:
           toolchain: nightly
           components: llvm-tools-preview
       - name: Test
-        run: cargo test
+        run: cargo test --features coverage
         env:
           RUSTFLAGS: "-Cinstrument-coverage"
           RUSTDOCFLAGS: "-Cinstrument-coverage"

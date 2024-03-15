@@ -9,7 +9,7 @@ use std::collections::HashSet;
 use std::path::Path;
 
 #[derive(PartialEq, Eq)]
-#[cfg_attr(debug_assertions, derive(Debug))]
+#[cfg_attr(not(feature = "coverage"), derive(Debug))]
 enum GlobScope {
     Filenames,
     Paths,
@@ -21,7 +21,7 @@ pub struct Glob {
     unique_id: usize,
 }
 
-#[cfg(debug_assertions)]
+#[cfg(not(feature = "coverage"))]
 impl std::fmt::Debug for Glob {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Glob")
@@ -72,7 +72,7 @@ impl Glob {
     }
 }
 
-#[cfg_attr(debug_assertions, derive(Debug))]
+#[cfg_attr(not(feature = "coverage"), derive(Debug))]
 pub struct Regex {
     regex: regex::Regex,
     unique_id: usize,
@@ -106,7 +106,7 @@ impl Regex {
 }
 
 #[derive(Default, PartialEq, Eq)]
-#[cfg_attr(debug_assertions, derive(Debug))]
+#[cfg_attr(not(feature = "coverage"), derive(Debug))]
 pub enum ConditionLogic {
     #[default]
     Positive,
@@ -114,7 +114,7 @@ pub enum ConditionLogic {
 }
 
 #[derive(Default)]
-#[cfg_attr(debug_assertions, derive(Debug))]
+#[cfg_attr(not(feature = "coverage"), derive(Debug))]
 pub struct GlobCondition {
     pub number: usize,
     pub logic: ConditionLogic,
@@ -137,7 +137,7 @@ impl GlobCondition {
 }
 
 #[derive(Default)]
-#[cfg_attr(debug_assertions, derive(Debug))]
+#[cfg_attr(not(feature = "coverage"), derive(Debug))]
 pub struct RegexCondition {
     pub patterns: Vec<Regex>,
     pub excludes: Vec<Regex>,
@@ -153,7 +153,7 @@ pub enum SizeOperator {
     NotEqual,
 }
 
-#[cfg_attr(debug_assertions, derive(Debug))]
+#[cfg_attr(not(feature = "coverage"), derive(Debug))]
 pub struct SizeCondition {
     pub operator: SizeOperator,
     pub value: u64,
@@ -172,7 +172,7 @@ impl SizeCondition {
     }
 }
 
-#[cfg_attr(debug_assertions, derive(Debug))]
+#[cfg_attr(not(feature = "coverage"), derive(Debug))]
 pub enum ContentCondition {
     Match(RegexCondition),
     NoMatch(RegexCondition),
@@ -180,7 +180,7 @@ pub enum ContentCondition {
     Lines(SizeCondition),
 }
 
-#[cfg_attr(debug_assertions, derive(Debug))]
+#[cfg_attr(not(feature = "coverage"), derive(Debug))]
 pub struct ContentConditionNode {
     pub number: usize,
     pub is_reporting_target: bool,
@@ -198,7 +198,7 @@ impl ContentConditionNode {
 }
 
 #[derive(Default)]
-#[cfg_attr(debug_assertions, derive(Debug))]
+#[cfg_attr(not(feature = "coverage"), derive(Debug))]
 pub struct Rule {
     pub number: usize,
     pub title: String,
@@ -217,7 +217,7 @@ impl Rule {
 }
 
 #[derive(Default)]
-#[cfg_attr(debug_assertions, derive(Debug))]
+#[cfg_attr(not(feature = "coverage"), derive(Debug))]
 pub struct Ruleset {
     pub rules: Vec<Rule>,
 }

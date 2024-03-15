@@ -155,7 +155,7 @@ fn apply_content_rules(
 }
 
 #[derive(Default)]
-#[cfg_attr(debug_assertions, derive(Debug))]
+#[cfg_attr(not(feature = "coverage"), derive(Debug))]
 struct RuleMatchStatus<'a> {
     pub content_checks: Vec<(&'a GlobCondition, Rc<PathBuf>)>,
     pub matched_files: Vec<Rc<PathBuf>>,

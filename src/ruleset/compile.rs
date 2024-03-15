@@ -4,7 +4,7 @@
 use crate::ruleset::enumerator::Enumerator;
 use crate::ruleset::{ConditionLogic, ContentCondition, RegexCondition, Rule, Ruleset};
 
-#[cfg_attr(debug_assertions, derive(Debug))]
+#[cfg_attr(not(feature = "coverage"), derive(Debug))]
 pub struct CompiledRuleset {
     pub rules: Vec<Rule>,
     pub conditions_count: usize,
