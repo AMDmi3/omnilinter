@@ -75,28 +75,26 @@ fn dump_rule(rule: &Rule) {
 }
 
 impl Config {
-    fn dump_directives(&self) -> bool {
+    fn dump_directives(&self, had_before_content: &mut bool) {
         for root in &self.roots {
             println!("root {}", root.display());
+            *had_before_content = true;
         }
-
-        !self.roots.is_empty()
     }
 
-    fn dump_rules(&self) -> bool {
+    fn dump_rules(&self, had_before_content: &mut bool) {
         for rule in &self.ruleset.rules {
+            if *had_before_content {
+                println!();
+            }
             dump_rule(rule);
-            println!();
+            *had_before_content = true;
         }
-
-        !self.ruleset.rules.is_empty()
     }
 
     pub fn dump(&self) {
-        if self.dump_directives() {
-            println!();
-        }
-
-        self.dump_rules();
+        let mut had_before_content = false;
+        self.dump_directives(&mut had_before_content);
+        self.dump_rules(&mut had_before_content);
     }
 }
