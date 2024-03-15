@@ -10,7 +10,7 @@ struct Match<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     file: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    line: Option<usize>,
+    line: Option<u64>,
 }
 
 pub fn format_matches(match_result: &MatchResult) {

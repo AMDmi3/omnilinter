@@ -75,7 +75,7 @@ fn apply_content_rules(
     let reader = BufReader::new(file);
 
     let mut local_condition_statuses: Vec<bool> = vec![false; global_condition_statuses.len()];
-    let mut matched_lines: Vec<Vec<usize>> = vec![Default::default(); global_rule_statuses.len()];
+    let mut matched_lines: Vec<Vec<u64>> = vec![Default::default(); global_rule_statuses.len()];
 
     let mut line_number: u64 = 0;
     let mut last_line_was_empty = false;
@@ -99,7 +99,7 @@ fn apply_content_rules(
                         if content_condition_node.is_reporting_target {
                             if matching_cache.check_condition_match(regex_condition) {
                                 *is_matched = true;
-                                matched_lines[rule.number].push(line_number.try_into().unwrap());
+                                matched_lines[rule.number].push(line_number);
                             }
                         } else if !*is_matched {
                             *is_matched = matching_cache.check_condition_match(regex_condition);
@@ -159,7 +159,7 @@ fn apply_content_rules(
 struct RuleMatchStatus<'a> {
     pub content_checks: Vec<(&'a GlobCondition, Rc<PathBuf>)>,
     pub matched_files: Vec<Rc<PathBuf>>,
-    pub matched_lines: Vec<(Rc<PathBuf>, usize)>,
+    pub matched_lines: Vec<(Rc<PathBuf>, u64)>,
 }
 
 pub fn apply_ruleset<'a>(ruleset: &'a CompiledRuleset, root: &'a Path) -> MatchResult<'a> {

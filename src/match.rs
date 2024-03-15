@@ -38,7 +38,7 @@ pub struct Match<'a> {
 #[derive(PartialEq, PartialOrd, Eq, Ord)]
 pub struct FileMatch {
     pub path: Rc<PathBuf>,
-    pub line: Option<usize>,
+    pub line: Option<u64>,
 }
 
 impl<'a> Match<'a> {
@@ -58,7 +58,7 @@ impl<'a> Match<'a> {
         }
     }
 
-    pub fn for_line(rule: &'a Rule, root: &'a Path, path: Rc<PathBuf>, line: usize) -> Match<'a> {
+    pub fn for_line(rule: &'a Rule, root: &'a Path, path: Rc<PathBuf>, line: u64) -> Match<'a> {
         Match {
             rule,
             root,

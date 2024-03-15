@@ -116,7 +116,7 @@ fn get_group(m: &Match, format: Format, palette: Palette) -> Option<String> {
     }
 }
 
-fn get_line(m: &Match) -> Option<usize> {
+fn get_line(m: &Match) -> Option<u64> {
     if let Some(file) = &m.file {
         file.line
     } else {
