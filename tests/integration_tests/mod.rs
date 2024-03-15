@@ -9,6 +9,7 @@ mod glob_patterns;
 mod glob_scope;
 mod ignore_marker;
 mod multiple_rules;
+mod parsing_errors;
 mod path_condition_combinations;
 mod path_conditions;
 mod premature;
