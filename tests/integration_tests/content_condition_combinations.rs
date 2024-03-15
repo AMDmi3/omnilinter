@@ -148,3 +148,12 @@ fn multiple_matches_in_same_file_bug() {
         .run()
         .assert_matches(vec!["a:1", "b:2"]); // not c:1!!! because it does not have "a" match
 }
+
+#[test]
+fn non_reporting_condition_reporting_bug() {
+    TestCase::new_for_json_tests()
+        .add_file("a", lines!["a"])
+        .add_rule(lines!["files *", "match /^a/", "files *", "match /^a/"])
+        .run()
+        .assert_matches(vec!["a:1"]);
+}

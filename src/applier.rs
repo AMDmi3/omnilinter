@@ -130,11 +130,14 @@ fn apply_content_rules(
         }
 
         global_condition_statuses[condition.number] = true;
-        global_rule_statuses[rule.number].matched_lines.extend(
-            matched_lines[rule.number]
-                .iter()
-                .map(|line_number| (path.clone(), *line_number)),
-        );
+
+        if condition.has_reporting_target {
+            global_rule_statuses[rule.number].matched_lines.extend(
+                matched_lines[rule.number]
+                    .iter()
+                    .map(|line_number| (path.clone(), *line_number)),
+            );
+        }
 
         if condition.is_reporting_target {
             global_rule_statuses[rule.number]

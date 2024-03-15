@@ -122,6 +122,7 @@ pub struct GlobCondition {
     pub excludes: Vec<Glob>,
     pub content_conditions: Vec<ContentConditionNode>,
     pub is_reporting_target: bool,
+    pub has_reporting_target: bool,
 }
 
 impl GlobCondition {

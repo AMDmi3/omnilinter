@@ -18,6 +18,7 @@ fn set_reporting_target(rule: &mut Rule) {
         {
             if let ContentCondition::Match(_) = last_content_condition_node.condition {
                 last_content_condition_node.is_reporting_target = true;
+                last_path_condition.has_reporting_target = true;
                 return;
             }
         }
