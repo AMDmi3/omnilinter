@@ -135,6 +135,34 @@ fn nomatch_checks_with_many_matching_rules(c: &mut Criterion) {
     });
 }
 
+fn early_matching_match_and_size(c: &mut Criterion) {
+    let mut testcase = TestCase::new_for_json_tests();
+    testcase.generate_files(1, 20000);
+    for i in 1..=100 {
+        testcase.add_rule(&format!("files 1.txt\nmatch /^1:{i}/\nsize > 0"));
+    }
+
+    c.bench_function("early matching: match + size", |b| {
+        b.iter(|| {
+            testcase.run();
+        })
+    });
+}
+
+fn early_matching_match_and_lines(c: &mut Criterion) {
+    let mut testcase = TestCase::new_for_json_tests();
+    testcase.generate_files(1, 20000);
+    for i in 1..=100 {
+        testcase.add_rule(&format!("files 1.txt\nmatch /^1:{i}/\nlines > 0"));
+    }
+
+    c.bench_function("early matching: match + lines", |b| {
+        b.iter(|| {
+            testcase.run();
+        })
+    });
+}
+
 criterion_group!(
     name = file_benches;
     config = Criterion::default().sample_size(25);
@@ -154,6 +182,8 @@ criterion_group!(
     match_checks_with_many_matching_rules,
     nomatch_checks_with_little_matching_rules,
     nomatch_checks_with_many_matching_rules,
+    early_matching_match_and_size,
+    early_matching_match_and_lines,
 );
 
 criterion_main!(file_benches, match_benches);
