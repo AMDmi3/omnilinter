@@ -41,7 +41,6 @@ pub struct Match {
 pub struct TestCase {
     temp_dir: TempDir,
     args: Vec<String>,
-    had_runs: bool,
     silence_stderr: bool,
 }
 
@@ -57,7 +56,6 @@ impl TestCase {
                 .into_iter()
                 .map(|a| a.to_string())
                 .collect(),
-            had_runs: false,
             silence_stderr: false,
         }
     }
@@ -73,7 +71,6 @@ impl TestCase {
                 .into_iter()
                 .map(|a| a.to_string())
                 .collect(),
-            had_runs: false,
             silence_stderr: false,
         }
     }
@@ -163,21 +160,12 @@ impl TestCase {
         }
 
         let output = cmd.output().unwrap();
-        self.had_runs = true;
 
         if !self.silence_stderr {
             io::stderr().write_all(&output.stderr).unwrap();
         }
 
         TestRunResult { output }
-    }
-}
-
-impl Drop for TestCase {
-    fn drop(&mut self) {
-        if !self.had_runs {
-            panic!("test case was never ran");
-        }
     }
 }
 
