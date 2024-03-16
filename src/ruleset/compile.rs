@@ -43,6 +43,19 @@ fn enumerate_regex_condition(condition: &mut RegexCondition, enumerator: &mut En
         .for_each(|regex| regex.enumerate_with(enumerator));
 }
 
+/// Whether this content condition requires file lines to be processed
+///
+/// For instance, matching and counting lines does, but checking file
+/// permissions doesn't
+fn is_linewise_condition(condition: &ContentCondition) -> bool {
+    match &condition {
+        ContentCondition::Match(_) => true,
+        ContentCondition::NoMatch(_) => true,
+        ContentCondition::Size(_) => false,
+        ContentCondition::Lines(_) => true,
+    }
+}
+
 fn enumerate_items(
     rule: &mut Rule,
     counter: &mut usize,
@@ -66,11 +79,15 @@ fn enumerate_items(
             .iter_mut()
             .for_each(|glob| glob.enumerate_with(glob_enumerator));
 
+        path_condition.linewise_content_conditions_count = 0;
         path_condition
             .content_conditions
             .iter_mut()
             .for_each(|content_condition_node| {
                 content_condition_node.number = count();
+                if is_linewise_condition(&content_condition_node.condition) {
+                    path_condition.linewise_content_conditions_count += 1;
+                }
                 match &mut content_condition_node.condition {
                     ContentCondition::Match(regex_condition) => {
                         enumerate_regex_condition(regex_condition, regex_enumerator)

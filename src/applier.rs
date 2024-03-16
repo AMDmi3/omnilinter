@@ -123,7 +123,7 @@ fn apply_content_rules(
             }
 
             // we don't need to do any more checks if all conditions are already satisfied
-            num_satisfied_content_conditions != path_condition.content_conditions.len()
+            num_satisfied_content_conditions != path_condition.linewise_content_conditions_count
         });
 
         // interrupt processing this file if all condition statuses are already known

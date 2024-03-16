@@ -121,6 +121,7 @@ pub struct GlobCondition {
     pub patterns: Vec<Glob>,
     pub excludes: Vec<Glob>,
     pub content_conditions: Vec<ContentConditionNode>,
+    pub linewise_content_conditions_count: usize,
     pub is_reporting_target: bool,
     pub has_reporting_target: bool,
 }
