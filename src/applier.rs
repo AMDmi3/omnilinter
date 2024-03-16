@@ -118,6 +118,11 @@ fn apply_content_rules(
                             }
                         }
                     }
+                    ContentCondition::Lines(size_condition) => {
+                        if size_condition.check_for_this_and_above(line_number) {
+                            num_satisfied_content_conditions += 1;
+                        }
+                    }
                     _ => {}
                 }
             }

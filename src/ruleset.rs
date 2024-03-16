@@ -172,6 +172,17 @@ impl SizeCondition {
             SizeOperator::NotEqual => value != self.value,
         }
     }
+
+    pub fn check_for_this_and_above(&self, value: u64) -> bool {
+        match self.operator {
+            SizeOperator::GreaterEqual => value >= self.value,
+            SizeOperator::Greater => value > self.value,
+            SizeOperator::LessEqual => false,
+            SizeOperator::Less => false,
+            SizeOperator::Equal => false,
+            SizeOperator::NotEqual => value > self.value,
+        }
+    }
 }
 
 #[cfg_attr(not(feature = "coverage"), derive(Debug))]
