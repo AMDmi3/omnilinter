@@ -157,3 +157,12 @@ fn non_reporting_condition_reporting_bug() {
         .run()
         .assert_matches(vec!["a:1"]);
 }
+
+#[test]
+fn non_reporting_condition_early_skip_bug() {
+    TestCase::new_for_json_tests()
+        .add_file("a", lines!["a", "a"])
+        .add_rule(lines!["files *", "match /^a/", "files *", "match /^a/"])
+        .run()
+        .assert_matches(vec!["a:1", "a:2"]);
+}

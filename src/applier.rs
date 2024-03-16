@@ -41,12 +41,14 @@ fn apply_file_metadata_conditions(
 fn apply_file_line_conditions(
     num_lines: u64,
     rules_with_conditions: &mut Vec<(&Rule, &GlobCondition)>,
+    rules_with_conditions_to_finalize: &mut HashMap<usize, (&Rule, &GlobCondition)>,
 ) {
     rules_with_conditions.retain(|(_, path_condition)| {
         for content_condition_node in &path_condition.content_conditions {
             match &content_condition_node.condition {
                 ContentCondition::Lines(size_condition) => {
                     if !size_condition.check(num_lines) {
+                        rules_with_conditions_to_finalize.remove(&path_condition.number);
                         return false;
                     }
                 }
@@ -77,6 +79,12 @@ fn apply_content_rules(
     let mut local_condition_statuses: Vec<bool> = vec![false; global_condition_statuses.len()];
     let mut matched_lines: Vec<Vec<u64>> = vec![Default::default(); global_rule_statuses.len()];
 
+    let mut rules_with_conditions_to_finalize: HashMap<usize, (&Rule, &GlobCondition)> =
+        rules_with_conditions
+            .iter()
+            .map(|(rule, condition)| (condition.number, (*rule, *condition)))
+            .collect();
+
     let mut line_number: u64 = 0;
     for line in reader.lines() {
         let line = line?;
@@ -89,6 +97,7 @@ fn apply_content_rules(
                 match &content_condition_node.condition {
                     ContentCondition::NoMatch(regex_condition) => {
                         if matching_cache.check_condition_match(regex_condition) {
+                            rules_with_conditions_to_finalize.remove(&path_condition.number);
                             return false;
                         }
                     }
@@ -122,29 +131,35 @@ fn apply_content_rules(
         line_number += 1;
     }
 
-    apply_file_line_conditions(line_number, &mut rules_with_conditions);
+    apply_file_line_conditions(
+        line_number,
+        &mut rules_with_conditions,
+        &mut rules_with_conditions_to_finalize,
+    );
 
-    rules_with_conditions.iter().for_each(|(rule, condition)| {
-        if !condition.are_all_positive_conditions_satisfied(&local_condition_statuses) {
-            return;
-        }
+    rules_with_conditions_to_finalize
+        .into_values()
+        .for_each(|(rule, condition)| {
+            if !condition.are_all_positive_conditions_satisfied(&local_condition_statuses) {
+                return;
+            }
 
-        global_condition_statuses[condition.number] = true;
+            global_condition_statuses[condition.number] = true;
 
-        if condition.has_reporting_target {
-            global_rule_statuses[rule.number].matched_lines.extend(
-                matched_lines[rule.number]
-                    .iter()
-                    .map(|line_number| (path.clone(), *line_number)),
-            );
-        }
+            if condition.has_reporting_target {
+                global_rule_statuses[rule.number].matched_lines.extend(
+                    matched_lines[rule.number]
+                        .iter()
+                        .map(|line_number| (path.clone(), *line_number)),
+                );
+            }
 
-        if condition.is_reporting_target {
-            global_rule_statuses[rule.number]
-                .matched_files
-                .push(path.clone());
-        }
-    });
+            if condition.is_reporting_target {
+                global_rule_statuses[rule.number]
+                    .matched_files
+                    .push(path.clone());
+            }
+        });
 
     Ok(())
 }
