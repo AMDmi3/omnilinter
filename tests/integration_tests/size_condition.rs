@@ -110,3 +110,13 @@ fn not_equal_not_matching() {
         .run()
         .assert_matches(vec![]);
 }
+
+#[test]
+#[ignore]
+fn binary_file() {
+    TestCase::new_for_json_tests()
+        .add_binary_file("a", &[255u8, 255u8, 255u8, 255u8])
+        .add_rule(lines!["files a", "size = 4"])
+        .run()
+        .assert_matches(vec!["a"]);
+}

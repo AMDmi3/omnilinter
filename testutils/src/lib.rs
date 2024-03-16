@@ -75,7 +75,7 @@ impl TestCase {
         }
     }
 
-    pub fn add_raw_file(&mut self, path: &str, text: &str) -> &mut Self {
+    pub fn add_raw_binary_file(&mut self, path: &str, text: &[u8]) -> &mut Self {
         let path = Path::new(path);
         let root_path = self.temp_dir.path();
 
@@ -85,14 +85,23 @@ impl TestCase {
 
         let mut f = File::create(root_path.join(path)).unwrap();
 
-        f.write_all(text.as_bytes()).unwrap();
+        f.write_all(text).unwrap();
 
+        self
+    }
+
+    pub fn add_raw_file(&mut self, path: &str, text: &str) -> &mut Self {
+        self.add_raw_binary_file(path, text.as_bytes());
         self
     }
 
     pub fn add_file(&mut self, path: &str, text: &str) -> &mut Self {
         self.add_raw_file(&("root/".to_owned() + path), text);
+        self
+    }
 
+    pub fn add_binary_file(&mut self, path: &str, text: &[u8]) -> &mut Self {
+        self.add_raw_binary_file(&("root/".to_owned() + path), text);
         self
     }
 
