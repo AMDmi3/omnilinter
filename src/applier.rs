@@ -111,6 +111,9 @@ fn apply_content_rules(
                             }
                         } else if !*is_matched {
                             *is_matched = matching_cache.check_condition_match(regex_condition);
+                            if *is_matched {
+                                num_satisfied_content_conditions += 1;
+                            }
                         } else {
                             num_satisfied_content_conditions += 1;
                         }
