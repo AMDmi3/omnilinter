@@ -57,6 +57,70 @@ fn parse_tags(pair: pest::iterators::Pair<Rule>) -> HashSet<String> {
         .collect()
 }
 
+fn parse_glob_str(s: &str) -> Result<Glob, glob::PatternError> {
+    // see https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_02
+
+    #[derive(PartialEq, Eq)]
+    enum QuoteMode {
+        None,
+        Single,
+        Double,
+    }
+
+    let mut output = String::new();
+    let mut quoted_fragment = String::new();
+    let mut escaped = false;
+    let mut quoted = QuoteMode::None;
+
+    for c in s.chars() {
+        match quoted {
+            QuoteMode::Single => {
+                if c == '\'' {
+                    output.push_str(&glob::Pattern::escape(&quoted_fragment));
+                    quoted = QuoteMode::None;
+                } else {
+                    quoted_fragment.push(c);
+                }
+            }
+            QuoteMode::Double => {
+                if escaped {
+                    quoted_fragment.push(c);
+                    escaped = false;
+                } else if c == '\\' {
+                    escaped = true;
+                } else if c == '"' {
+                    output.push_str(&glob::Pattern::escape(&quoted_fragment));
+                    quoted = QuoteMode::None;
+                } else {
+                    quoted_fragment.push(c);
+                }
+            }
+            QuoteMode::None => {
+                if escaped {
+                    output.push_str(&glob::Pattern::escape(&c.to_string()));
+                    escaped = false;
+                } else if c == '\\' {
+                    escaped = true;
+                } else if c == '\'' {
+                    quoted_fragment = String::new();
+                    quoted = QuoteMode::Single;
+                } else if c == '"' {
+                    quoted_fragment = String::new();
+                    quoted = QuoteMode::Double;
+                } else {
+                    output.push(c);
+                }
+            }
+        }
+    }
+
+    debug_assert!(
+        !escaped && quoted == QuoteMode::None,
+        "quoting and escaping consistency is expected to be guranteed by the grammar"
+    );
+    Glob::new(&output)
+}
+
 fn parse_globs_condition(
     pair: pest::iterators::Pair<Rule>,
     logic: ConditionLogic,
@@ -69,11 +133,13 @@ fn parse_globs_condition(
         let item_text = item.as_str();
         if let Some(item_text) = item_text.strip_prefix('!') {
             cond.excludes.push(
-                Glob::new(item_text).map_err(|e| glob_pattern_error_into_pest_error(e, &item))?,
+                parse_glob_str(item_text)
+                    .map_err(|e| glob_pattern_error_into_pest_error(e, &item))?,
             );
         } else {
             cond.patterns.push(
-                Glob::new(item_text).map_err(|e| glob_pattern_error_into_pest_error(e, &item))?,
+                parse_glob_str(item_text)
+                    .map_err(|e| glob_pattern_error_into_pest_error(e, &item))?,
             );
         }
     }
@@ -88,7 +154,7 @@ fn parse_regex_str(s: &str) -> Result<Regex, regex::Error> {
     let framing_char_length = s
         .chars()
         .next()
-        .expect("framing characters presence is enforced by grammar")
+        .expect("framing characters presence expected to be guranteed by the grammar")
         .len_utf8();
     Regex::new(&s[framing_char_length..s.len() - framing_char_length])
 }

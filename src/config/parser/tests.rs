@@ -198,9 +198,8 @@ mod parse_globs {
     }
 
     #[test]
-    #[ignore] // TODO: implement (issue #39)
     fn backslash_escape() {
-        let text = lines!["[]", "files \\*\\ \\*"];
+        let text = lines!["[]", r"files \*\ \*"];
         let config = Config::from_str(text).unwrap();
         assert_eq!(
             config.ruleset.rules[0].path_conditions[0].patterns[0].as_str(),
@@ -209,9 +208,8 @@ mod parse_globs {
     }
 
     #[test]
-    #[ignore] // TODO: implement (issue #39)
     fn dquote() {
-        let text = lines!["[]", "files \"* *\""];
+        let text = lines!["[]", r#"files "* *""#];
         let config = Config::from_str(text).unwrap();
         assert_eq!(
             config.ruleset.rules[0].path_conditions[0].patterns[0].as_str(),
@@ -220,7 +218,6 @@ mod parse_globs {
     }
 
     #[test]
-    #[ignore] // TODO: implement (issue #39)
     fn squote() {
         let text = lines!["[]", "files '* *'"];
         let config = Config::from_str(text).unwrap();
@@ -231,14 +228,44 @@ mod parse_globs {
     }
 
     #[test]
-    #[ignore] // TODO: implement (issue #39)
     fn mixed_quoting() {
-        let text = lines!["[]", "files *\\*\"*\"'*'"];
+        let text = lines!["[]", r#"files *\*"*"'*'"#];
         let config = Config::from_str(text).unwrap();
         assert_eq!(
             config.ruleset.rules[0].path_conditions[0].patterns[0].as_str(),
             "*[*][*][*]" // as per glob::Pattern::escape
         );
+    }
+
+    #[test]
+    fn quite_escaping() {
+        let text = lines!["[]", r#"files \"\'"#];
+        let config = Config::from_str(text).unwrap();
+        assert_eq!(
+            config.ruleset.rules[0].path_conditions[0].patterns[0].as_str(),
+            r#""'"#
+        );
+    }
+
+    #[test]
+    #[should_panic]
+    fn bad_escape() {
+        let text = lines!["[]", r"files \"];
+        Config::from_str(text).unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn unclosed_squote() {
+        let text = lines!["[]", r"files '"];
+        Config::from_str(text).unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn unclosed_dquote() {
+        let text = lines!["[]", r#"files ""#];
+        Config::from_str(text).unwrap();
     }
 }
 
