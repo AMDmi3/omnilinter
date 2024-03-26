@@ -2,226 +2,161 @@
 
 [![CI](https://github.com/AMDmi3/omnilinter/actions/workflows/ci.yml/badge.svg)](https://github.com/AMDmi3/omnilinter/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/AMDmi3/omnilinter/graph/badge.svg?token=LZC12KUQ0M)](https://codecov.io/gh/AMDmi3/omnilinter)
-[![Github commits (since latest release)](https://img.shields.io/github/commits-since/AMDmi3/omnilinter/latest.svg)](https://github.com/AMDmi3/omnilinter)
+[![GitHub commits (since latest release)](https://img.shields.io/github/commits-since/AMDmi3/omnilinter/latest.svg)](https://github.com/AMDmi3/omnilinter)
 
-Define file pattern and regular expression rules and match against all
-your repositories/projects/codebases at once. Omnilinter helps you to
-push and uphold good practices and fix problems all over your code, even
-in not actively maintained projects.
+Define path pattern and regular expression rules and match against all
+your repositories/projects/codebases at once. Use that to push and uphold
+good practices, chase deprecations, and fix common problems all over
+your code.
 
 ## Example
 
-Note: ruleset syntax is not final.
+_Note: ruleset syntax is not final yet_
 
-- Ruleset:
+- Example config:
 
   ```
-  # checks for "auto_ptr" occurances in all .cpp files
   [convert deprecated auto_ptr to unique_ptr]
-      files *.cpp
-          match /auto_ptr/
+  files *.cpp
+  match /auto_ptr/
 
-  # checks for whether setup.py is present, but not pyproject.toml
   [convert setup.py to pyproject.toml]
-      files setup.py
-      nofiles pyproject.toml
+  files setup.py
+  nofiles pyproject.toml
 
-  [change indentation to spaces]
-      files *.py
-          match /^	/
-  
   [add license information]
-      files *.py *.c* *.h* *.rs
-          nomatch /^..? SPDX-FileCopyrightText:/
+  files *.py *.c* *.h* *.rs
+  nomatch /^..? SPDX-FileCopyrightText:/
 
-  # checks for absence of any kind of README
-  [add README]
-      nofiles README README.txt README.md README.rst
+  [add CI workflow]
+  files *.py *.c* *.h* *.rs
+  nofiles .github/workflows/*.yml
+
+  [add project README]
+  nofiles /README*
   ```
 
-  See also [config](.omnilinter.conf) used to check omnilinter's own repository.
+  (see omnilinter's own [config](.omnilinter.conf) for more examples)
 
-- Command:
-
-  ```
-  % omnilinter -c omnilinter.conf projects/*
-  ```
-
-- Output:
+- Example run:
 
   ```
-  projects/my_python_project
-    setup.py: convert setup.py to pyptoject.toml
+  % omnilinter -c omnilinter.conf my_projects/*
+  my_projects/my_python_project
+    setup.py: convert setup.py to pyproject.toml
     src/__init__.py: add license information
-    src/__init__.py:1: change indentation to spaces
-    src/__init__.py:2: change indentation to spaces
-    src/__init__.py:3: change indentation to spaces
-  project/my_cpp_lib
-    add README.md
+  my_project/my_cpp_lib
+    add project README
+    add CI workflow
     src/main.cpp: add license information
     src/main.cpp:17: convert deprecated auto_ptr to unique_ptr
-    src/main.cpp:49: convert deprecated auto_ptr to unique_ptr
   ```
 
 ## Running
 
+At the very least, you need to specify path to config file and paths to directories to check:
+
 ```
-Usage: omnilinter [OPTIONS] [TARGET_DIR]...
-
-Arguments:
-  [TARGET_DIR]...
-          Directories to operate on
-
-Options:
-  -c, --config <CONFIG_PATH>
-          Path(s) to configuration file(s)
-
-  -t, --tags <TAGS>
-          Only process rules tagged with these values
-
-      --skip-tags <TAGS>
-          Ignore rules tagged with these values
-
-  -f, --format <FORMAT>
-          Output format
-          
-          [default: by-root]
-
-          Possible values:
-          - by-root:    Plain text output, grouped by root
-          - full-paths: Plain text output, full paths
-          - by-rule:    Plain text output, grouped by rule
-          - by-path:    Plain text output, grouped by path
-          - json:       JSON output
-
-      --color <MODE>
-          Coloring
-          
-          [default: auto]
-          [possible values: auto, always, never]
-
-      --palette <PALETTE>
-          Palette to use for rule coloring
-          
-          [default: simple]
-
-          Possible values:
-          - none:       No specific rule coloring
-          - simple:     Use one of 4 neutral colors (green, blue, magenta, cyan) + their bright variants for each rule
-          - severity:   Use color based on severity guessed from tags (error/fatal/critical; warning; minor)
-          - true-color: Use wider true color palette
-
-      --error-exitcode <EXITCODE>
-          If any matches are found, exit with given code
-
-  -j, --jobs <JOBS>
-          Number of target directories to process simultaneously
+omnilinter -c <path to omnilinter.conf> <directory to check> ...
 ```
 
-The most basic usage is to specify `-c/--config` with path to your
-config/ruleset and a list of directory paths (we call these _roots_) to
-operate on. You may specify multiple configs in which case these are used
-together (effectively concatenated).
+or, if you set directories to check right in the config, and place it in the default location (`~/.config/omnilinter/omnilinter.conf`) you can just run
 
-If you don't specify any configs at all, omnilinter tries to read its default
-config file, usually from `~/.config/omnilinter/omnilinter.conf`. Since you may
-specify _roots_ in the config as well, this allows you to to run omnilinter
-without any arguments to process your default list of roots with your default
-ruleset.
+```
+omnilinter
+```
 
-Use `--tags` and `--skip-tags` to include only subset of rules or to exclude
-a subset of rules. Use `--format`, `--color` and `--palette` to tune output.
-Use `--error-exitcode` if you want omnilinter to exit with non-zero code if
-any rules match, e.g. to use in CI or scripts.
+### Useful options
 
-## Config format
+- `--tags`, `--skip-tags` - limit operation with a subset of rules.
+- `--format by-root|full-paths|by-rule|by-path` - specify output format.
+- `--color`, `--palette` - tweak output coloring.
+- `--error-exitcode` - exit with specified code if any rule matches, useful for CI and scripts.
 
+See `omnilinter --help` for all options.
+
+## Config file format
+
+Example `omnilinter.conf`:
 ```
 root /path/to/project1
-root /path/to/other_projects/*
+root /path/to/other_projects/*  # patterns are allowed
 
 [rule title]
-	tags tag1,tag2
-	nofiles /README* !/README.txt
-	files *.py !*.pyi
-		match /Object/ !/^class /
-		nomatch "^/usr/share/.*"
+tags tag1,tag2                  # used with --tags, --exclude-tags
+nofiles /README* !/README.txt   # require absence of file
+files *.py !*.pyi               # or require presence of a file, in which...
+match /Object/ !/^class /       # ...require pattern match...
+nomatch "^/usr/share/.*"        # ...or absence of pattern match
+
+[next rule]
+...
 ```
 
-`root` directives specify default directories to operate on. These are
-only used if no roots are specified on the command line.
+At the beginning of the file, config directives are allowed:
 
-Each rule starts with a bracketed `[rule title]`, which is used when
-reporting matches. It's advised to use lowercase incentives here,
-for matches to conveniently look as call to action, such as `main.cpp:1:
- fix include dirtive`.
+* `root` specifies default directories to operate on. These are only
+used if no roots are specified on the command line.
 
-Next you may specify optional list of `tags` (separated by whitespace
-or commas) by which you may enable and disable rules from the command line.
+Ruleset follows next, in which each rule consists of:
 
-Finally, you need to specify a list of conditions for rule to match on
-(if you don't, rule always matches). First kind of conditions matches
-file paths:
-- `files` requires specified paths to exist in the root for rule to match
-- `nofiles` requires specified paths to not exist in the repository
+* Bracketed title which is used when reporting matches. Use `]]` if you
+want to include closing bracket in the title. All other parts are optional.
+* `tags` directive with a comma or space separated list of tags to filter
+rules with `--tags` and `--exclude-tags` command line options.
+* Path conditions:
+  * `files` which require presence of specific path patterns in the directory.
+  * `nofiles` which require absence thereof.
+  Each requires one or more shell pattern (e.g. `*.py` or `/src/*.c*` or
+  `**/tests/*.rs`) and allows exclusions (prefixed by `!`). Backslash
+  escaping and quotes are allowed like in shell (`"program output "\[[0-9]\].txt`
+  to match `program output [1].txt`).  Patterns without path separators match
+  everywhere (`*.py` matches both `setup.py` and `src/mymodule/__init__.py`),
+  while patterns with path separators only match relative to root.
+* Content conditions (only allowed after `files` and only apply to
+  files matched by that specific `files` condition):
+  * `match` requires match of given regular expression pattern in a file.
+  * `nomatch` requires absence of such match.
+  These require one or more regular expressions enclosed in (almost) any
+  character (e.g. `/.*/`, `".*"`, `|.*|` all work, so escaping can be avoided)
+  and also allow `!`-prefixed exclusions.
+  * `size` checks file size with an operator (`>`, `>=`, `<`, '<=`, `=`
+  or `==`, `!=` or `<>`) against given amount of bytes (e.g. `size >= 1024`).
+  * `lines` checks number of lines the same way.
 
-Each condition requires a list of shell patterns, some of which may be
-prefixed by `!` to act as exclusion.
-
-Patterns without path separators in them (`*.py`) match file names anywhere
-in directory hierarchy. Otherwise patterns match paths relative to root,
-for instance `/README*` matches files only at the root level of processed
-directory.
-
-Each kind of condition may be specified multiple times. For example,
+You may build rather complex trees out of these conditions, for example:
 
 ```
-files /setup.py
-files __init.py__
-nofiles /README
-nofiles /README.md
+[too big readme for such small rust library]
+# match when there's src/lib.rs...
+files src/lib.rs
+# ...but no other .rs files under src/, which along with the
+# previous condition suggest it's a single-file rust library
+nofiles src/**/*.rs !src/lib.rs
+# if there's README file of any kind,...
+files /README*
+# ...and it's longer than 25 lines...
+lines >= 25
+# ...unless there's Example: header (implied that it may contain a lot of code)
+nomatch /^#* Example:/
 ```
 
-matches when both `setup.py` and `__init__.py` files are present,
-but neither `README` nor `README.md`.
+When all rule conditions are satisfied, the rule match is reported:
 
-After each `files` directive you may specify another kind of conditions,
-which matches file content:
-- `match` requires specified regexp patterns to match in the file
-- `nomatch` requires specified regexp patterns not to match in the file
-
-Note that these conditions are tied to `files` condition and are checked
-against files matched by it. There may be multiple `files`, each with
-its own `match`/`nomatch` sets, and these are checked independently.
-
-Similarly to path conditions, each content condition required a list of
-regexp patterns, some of which may be prefixed by `!` to act as exclusion.
-Patterns are framed by any symbol which is useful to avoid escaping.
-For instance, `/foo/`, `"foo"`, `|foo|` all match `foo`.
-
-Condition order is important as it defines which conditions will only
-perform checks and which condition will report matches. The reporting
-condition is either the very last `match`, or otherwise the last `files`.
-
-So the following reports `license` matches in `*.py` files, but only
-when there are `License` matches in the `README.md` file:
 ```
-files README.md
-    match License
-files *.py
-    match license
-```
-and the following reports `License` matches in `README.md`:
-```
-files *.py
-    match license
-files README.md
-    match License
+README.md: too big readme for such small rust library
 ```
 
-Whitespace is not important in the config, but it's advised to use
-indentation make condition hierarchy more apparent and rules visually
-more distinctive, as demonstrated in this document.
+The match may include context:
+* If the very last condition in a rule is `match`, file and line would
+  be reported.
+* Otherwise, if the very last of _path_ conditions was `files`, file
+  would be reported (like in example above).
+* Otherwise, there's no specific context, and the report is for the checked
+  directory in general.
+
+Therefore rule order matters, so preconditions should be specified first, and
+conditions which point to concrete problematic places last.
 
 ## Author
 
