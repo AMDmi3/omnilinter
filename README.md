@@ -13,44 +13,40 @@ your code.
 
 _Note: ruleset syntax is not final yet_
 
-- Example config:
+```
+% cat omnilinter.conf
+[convert deprecated auto_ptr to unique_ptr]
+files *.cpp
+match /auto_ptr/
 
-  ```
-  [convert deprecated auto_ptr to unique_ptr]
-  files *.cpp
-  match /auto_ptr/
+[convert setup.py to pyproject.toml]
+files setup.py
+nofiles pyproject.toml
 
-  [convert setup.py to pyproject.toml]
-  files setup.py
-  nofiles pyproject.toml
+[add license information]
+files *.py *.c* *.h* *.rs
+nomatch /^..? SPDX-FileCopyrightText:/
 
-  [add license information]
-  files *.py *.c* *.h* *.rs
-  nomatch /^..? SPDX-FileCopyrightText:/
+[add CI workflow]
+files *.py *.c* *.h* *.rs
+nofiles .github/workflows/*.yml
 
-  [add CI workflow]
-  files *.py *.c* *.h* *.rs
-  nofiles .github/workflows/*.yml
+[add project README]
+nofiles /README*
+```
+```
+% omnilinter -c omnilinter.conf my_projects/*
+my_projects/my_python_project
+  setup.py: convert setup.py to pyproject.toml
+  src/__init__.py: add license information
+my_project/my_cpp_lib
+  add project README
+  add CI workflow
+  src/main.cpp: add license information
+  src/main.cpp:17: convert deprecated auto_ptr to unique_ptr
+```
 
-  [add project README]
-  nofiles /README*
-  ```
-
-  (see omnilinter's own [config](.omnilinter.conf) for more examples)
-
-- Example run:
-
-  ```
-  % omnilinter -c omnilinter.conf my_projects/*
-  my_projects/my_python_project
-    setup.py: convert setup.py to pyproject.toml
-    src/__init__.py: add license information
-  my_project/my_cpp_lib
-    add project README
-    add CI workflow
-    src/main.cpp: add license information
-    src/main.cpp:17: convert deprecated auto_ptr to unique_ptr
-  ```
+(see omnilinter's own [config](.omnilinter.conf) for more examples)
 
 ## Running
 
