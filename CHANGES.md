@@ -1,3 +1,13 @@
+## 0.5.0
+
+- Add windows and macos support
+- Improve reporting of config parse errors
+- Implement `size` and `lines` conditions checking file size and number
+  if lines respectively
+- Support complex globs with quotes and escapes (like in shell,
+  e.g. `"program output "\[[0-9]\].txt` which would match `program
+  output [1].txt`)
+
 ## 0.4.0
 
 - Fix incorrect match reporting level (files vs. lines) in some cases
