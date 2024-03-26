@@ -11,8 +11,6 @@ your code.
 
 ## Example
 
-_Note: ruleset syntax is not final yet_
-
 ```
 % cat omnilinter.conf
 [convert deprecated auto_ptr to unique_ptr]
@@ -46,7 +44,7 @@ my_project/my_cpp_lib
   src/main.cpp:17: convert deprecated auto_ptr to unique_ptr
 ```
 
-(see omnilinter's own [config](.omnilinter.conf) for more examples)
+See omnilinter's own [config](.omnilinter.conf) for more examples.
 
 ## Running
 
