@@ -96,24 +96,30 @@ Ruleset follows next, in which each rule consists of:
 
 * Bracketed title which is used when reporting matches. Use `]]` if you
 want to include closing bracket in the title. All other parts are optional.
+
 * `tags` directive with a comma or space separated list of tags to filter
 rules with `--tags` and `--exclude-tags` command line options.
+
 * Path conditions:
   * `files` which require presence of specific path patterns in the directory.
   * `nofiles` which require absence thereof.
+
   Each requires one or more shell pattern (e.g. `*.py` or `/src/*.c*` or
   `**/tests/*.rs`) and allows exclusions (prefixed by `!`). Backslash
   escaping and quotes are allowed like in shell (`"program output "\[[0-9]\].txt`
   to match `program output [1].txt`).  Patterns without path separators match
   everywhere (`*.py` matches both `setup.py` and `src/mymodule/__init__.py`),
   while patterns with path separators only match relative to root.
+
 * Content conditions (only allowed after `files` and only apply to
   files matched by that specific `files` condition):
   * `match` requires match of given regular expression pattern in a file.
   * `nomatch` requires absence of such match.
+
   These require one or more regular expressions enclosed in (almost) any
   character (e.g. `/.*/`, `".*"`, `|.*|` all work, so escaping can be avoided)
   and also allow `!`-prefixed exclusions.
+
   * `size` checks file size with an operator (`>`, `>=`, `<`, '<=`, `=`
   or `==`, `!=` or `<>`) against given amount of bytes (e.g. `size >= 1024`).
   * `lines` checks number of lines the same way.
