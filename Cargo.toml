@@ -8,7 +8,7 @@ license = "GPL-3.0-or-later"
 readme = "README.md"
 homepage = "https://github.com/AMDmi3/omnilinter"
 repository = "https://github.com/AMDmi3/omnilinter"
-keywords = ["linter"]
+keywords = ["cli", "linter"]
 categories = ["command-line-utilities", "development-tools"]
 
 [[bench]]
