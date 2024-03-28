@@ -158,6 +158,18 @@ The match may include context:
 Therefore rule order matters, so preconditions should be specified first, and
 conditions which point to concrete problematic places last.
 
+## Installation
+
+<a href="https://repology.org/project/omnilinter/versions">
+    <img src="https://repology.org/badge/vertical-allrepos/omnilinter.svg" alt="Packaging status" align="right">
+</a>
+
+Install from cargo or from your package repository
+
+```
+cargo install omnilinter
+```
+
 ## Author
 
 * [Dmitry Marakasov](https://github.com/AMDmi3) <amdmi3@amdmi3.ru>
