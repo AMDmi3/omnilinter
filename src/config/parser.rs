@@ -17,7 +17,7 @@ use anyhow::{Context, Error};
 use pest::Parser;
 use std::collections::HashSet;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 #[derive(pest_derive::Parser)]
 #[grammar = "config/parser/omnilinter.pest"]
@@ -287,7 +287,7 @@ fn parse_rule(
     Ok(rule)
 }
 
-fn expand_root_glob(glob: &str) -> Result<glob::Paths, glob::PatternError> {
+fn expand_config_directive_glob(glob: &str) -> Result<glob::Paths, glob::PatternError> {
     if let Some(glob_relative_to_home) = glob.strip_prefix('~') {
         match std::env::var("HOME") {
             Ok(home) => glob::glob(&(home + glob_relative_to_home)),
@@ -299,6 +299,20 @@ fn expand_root_glob(glob: &str) -> Result<glob::Paths, glob::PatternError> {
     } else {
         glob::glob(glob)
     }
+}
+
+fn parse_config_directive_glob(
+    pair: pest::iterators::Pair<Rule>,
+) -> Result<Vec<PathBuf>, PestError> {
+    let mut res = Vec::new();
+    for path_or_error in expand_config_directive_glob(pair.as_str())
+        .map_err(|e| glob_pattern_error_into_pest_error(e, &pair))?
+    {
+        // XXX: convert this loop into try_collect when stabilized
+        res.push(path_or_error.map_err(|e| error_into_pest_error(e, &pair))?);
+    }
+    res.sort();
+    Ok(res)
 }
 
 fn parse_file(s: &str, source_desc: &str) -> Result<Config, PestError> {
@@ -335,18 +349,9 @@ fn parse_file(s: &str, source_desc: &str) -> Result<Config, PestError> {
     for item in file.into_inner() {
         match item.as_rule() {
             Rule::config_directive_root => {
-                let root_pattern = item.into_inner().next().unwrap();
-                let root_pattern_text = root_pattern.as_str();
-                let mut root_paths = Vec::new();
-                for path_or_error in expand_root_glob(root_pattern_text)
-                    .map_err(|e| glob_pattern_error_into_pest_error(e, &root_pattern))?
-                {
-                    // XXX: convert this loop into try_collect when stabilized
-                    root_paths
-                        .push(path_or_error.map_err(|e| error_into_pest_error(e, &root_pattern))?);
-                }
-                root_paths.sort();
-                config.roots.append(&mut root_paths);
+                config.roots.append(&mut parse_config_directive_glob(
+                    item.into_inner().next().unwrap(),
+                )?);
             }
             Rule::rule => {
                 config.ruleset.rules.push(parse_rule(
