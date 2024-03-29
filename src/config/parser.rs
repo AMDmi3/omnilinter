@@ -287,6 +287,20 @@ fn parse_rule(
     Ok(rule)
 }
 
+fn expand_root_glob(glob: &str) -> Result<glob::Paths, glob::PatternError> {
+    if let Some(glob_relative_to_home) = glob.strip_prefix('~') {
+        match std::env::var("HOME") {
+            Ok(home) => glob::glob(&(home + glob_relative_to_home)),
+            Err(e) => {
+                eprintln!("could not expand ~: {e}");
+                glob::glob(glob)
+            }
+        }
+    } else {
+        glob::glob(glob)
+    }
+}
+
 fn parse_file(s: &str, source_desc: &str) -> Result<Config, PestError> {
     let mut config: Config = Default::default();
 
@@ -324,7 +338,7 @@ fn parse_file(s: &str, source_desc: &str) -> Result<Config, PestError> {
                 let root_pattern = item.into_inner().next().unwrap();
                 let root_pattern_text = root_pattern.as_str();
                 let mut root_paths = Vec::new();
-                for path_or_error in glob::glob(root_pattern_text)
+                for path_or_error in expand_root_glob(root_pattern_text)
                     .map_err(|e| glob_pattern_error_into_pest_error(e, &root_pattern))?
                 {
                     // XXX: convert this loop into try_collect when stabilized

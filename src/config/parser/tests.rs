@@ -298,6 +298,25 @@ fn empty_lines() {
     Config::from_str(text).unwrap();
 }
 
+mod parse_root {
+    use super::*;
+
+    #[test]
+    fn glob_expansion() {
+        let text = lines!["root *"];
+        let config = Config::from_str(text).unwrap();
+        // does not matter what it's expanded into, we just check that it is expanded
+        assert_ne!(config.roots[0].display().to_string(), "*");
+    }
+
+    #[test]
+    fn tilde_expansion() {
+        let text = lines!["root ~"];
+        let config = Config::from_str(text).unwrap();
+        assert_ne!(config.roots[0].display().to_string(), "~");
+    }
+}
+
 #[test]
 fn conditionless_rules() {
     let text = lines!["[]", "[]"];
