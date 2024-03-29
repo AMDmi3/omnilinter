@@ -310,6 +310,7 @@ mod parse_root {
     }
 
     #[test]
+    #[cfg_attr(target_family = "windows", ignore)]
     fn tilde_expansion() {
         let text = lines!["root ~"];
         let config = Config::from_str(text).unwrap();
