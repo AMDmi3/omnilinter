@@ -436,12 +436,15 @@ impl Config {
         queue.push_back(path.to_path_buf());
 
         while let Some(current_path) = queue.pop_front() {
+            if !seen_paths.insert(current_path.clone()) {
+                continue;
+            }
+
             config.merge_from(Self::from_file(&current_path)?);
-            config.includes.drain(0..).for_each(|include| {
-                if seen_paths.insert(include.clone()) {
-                    queue.push_back(include);
-                }
-            });
+            config
+                .includes
+                .drain(0..)
+                .for_each(|include| queue.push_back(include));
         }
 
         Ok(config)
