@@ -288,10 +288,12 @@ fn parse_rule(
     Ok(rule)
 }
 
+type Paths = std::iter::Peekable<glob::Paths>;
+
 fn expand_config_directive_glob(
     pattern: &str,
     current_path: &Path,
-) -> Result<glob::Paths, glob::PatternError> {
+) -> Result<Paths, glob::PatternError> {
     let pattern = if let Some(pattern_relative_to_home) = pattern.strip_prefix('~') {
         if let Ok(home) = std::env::var("HOME") {
             Cow::from(home + pattern_relative_to_home)
@@ -306,7 +308,7 @@ fn expand_config_directive_glob(
     };
 
     let as_path = Path::new(&*pattern);
-    if as_path.is_absolute() {
+    let res = if as_path.is_absolute() {
         glob::glob(&pattern)
     } else {
         glob::glob(
@@ -317,6 +319,21 @@ fn expand_config_directive_glob(
                 .to_str()
                 .expect("included path should be valid UTF-8 string"),
         )
+    };
+
+    match res {
+        Ok(paths) => {
+            let mut peekable_paths = paths.peekable();
+            if peekable_paths.peek().is_none() {
+                Err(glob::PatternError {
+                    pos: 0,
+                    msg: "pattern does not match any files",
+                })
+            } else {
+                Ok(peekable_paths)
+            }
+        }
+        Err(err) => Err(err),
     }
 }
 
