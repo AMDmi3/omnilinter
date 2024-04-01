@@ -280,7 +280,7 @@ fn match_without_files() {
 fn empty_lines() {
     let text = lines![
         "",
-        "root /nonexistent",
+        "root .",
         "",
         "[]",
         "",
