@@ -76,6 +76,8 @@ Example `omnilinter.conf`:
 root /path/to/project1
 root /path/to/other_projects/*  # patterns are allowed
 
+include /path/to/other.conf
+
 [rule title]
 tags tag1,tag2                  # used with --tags, --exclude-tags
 nofiles /README* !/README.txt   # require absence of file
@@ -90,7 +92,12 @@ nomatch "^/usr/share/.*"        # ...or absence of pattern match
 At the beginning of the file, config directives are allowed:
 
 * `root` specifies default directories to operate on. These are only
-used if no roots are specified on the command line.
+used if no roots are specified on the command line. Shell patterns
+are supported here. Non-absolute paths are resolved relative to config
+location.
+
+* `include` parses additional configs. Shell patterns are supported here
+too, non-absolute paths are resolved relative to config location.
 
 Ruleset follows next, in which each rule consists of:
 
