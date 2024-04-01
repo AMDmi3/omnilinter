@@ -116,11 +116,11 @@ fn read_config(args: &Args) -> Result<Config, Error> {
     if !args.config_paths.is_empty() {
         let mut config = Config::new();
         for path in &args.config_paths {
-            config.merge_from(Config::from_file(path)?);
+            config.merge_from(Config::from_file_expand_includes(path)?);
         }
         Ok(config)
     } else if let Some(path) = get_default_config_path() {
-        Ok(Config::from_file(&path)?)
+        Ok(Config::from_file_expand_includes(&path)?)
     } else {
         bail!("config file is neither specified on the command line, nor present in the application config directory");
     }
@@ -130,7 +130,9 @@ fn main() -> Result<ExitCode, Error> {
     let args = Args::parse();
 
     if let Some(config_to_dump) = args.config_to_dump {
-        Config::from_file(&config_to_dump).unwrap().dump();
+        Config::from_file_expand_includes(&config_to_dump)
+            .unwrap()
+            .dump();
         return Ok(ExitCode::SUCCESS);
     }
 

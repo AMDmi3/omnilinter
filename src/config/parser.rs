@@ -15,7 +15,8 @@ use crate::ruleset::{
 };
 use anyhow::{Context, Error};
 use pest::Parser;
-use std::collections::HashSet;
+use std::borrow::Cow;
+use std::collections::{HashSet, VecDeque};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -250,7 +251,7 @@ fn parse_files_condition(pair: pest::iterators::Pair<Rule>) -> Result<GlobCondit
 fn parse_rule(
     pair: pest::iterators::Pair<Rule>,
     rule_number: usize,
-    source_desc: &str,
+    config_path: &Path,
 ) -> Result<RulesetRule, PestError> {
     let mut rule: RulesetRule = Default::default();
 
@@ -262,7 +263,7 @@ fn parse_rule(
                 if title.is_empty() {
                     rule.title = format!(
                         "rule from {}:{} (#{})",
-                        source_desc,
+                        config_path.display().to_string(),
                         line_number,
                         rule_number + 1
                     );
@@ -287,25 +288,44 @@ fn parse_rule(
     Ok(rule)
 }
 
-fn expand_config_directive_glob(glob: &str) -> Result<glob::Paths, glob::PatternError> {
-    if let Some(glob_relative_to_home) = glob.strip_prefix('~') {
-        match std::env::var("HOME") {
-            Ok(home) => glob::glob(&(home + glob_relative_to_home)),
-            Err(e) => {
-                eprintln!("could not expand ~: {e}");
-                glob::glob(glob)
-            }
+fn expand_config_directive_glob(
+    pattern: &str,
+    current_path: &Path,
+) -> Result<glob::Paths, glob::PatternError> {
+    let pattern = if let Some(pattern_relative_to_home) = pattern.strip_prefix('~') {
+        if let Ok(home) = std::env::var("HOME") {
+            Cow::from(home + pattern_relative_to_home)
+        } else {
+            return Err(glob::PatternError {
+                pos: 0,
+                msg: "cannot expand tilde (is $HOME set?)",
+            });
         }
     } else {
-        glob::glob(glob)
+        Cow::from(pattern)
+    };
+
+    let as_path = Path::new(&*pattern);
+    if as_path.is_absolute() {
+        glob::glob(&pattern)
+    } else {
+        glob::glob(
+            current_path
+                .parent()
+                .expect("parent path for the current config should be extractible")
+                .join(as_path)
+                .to_str()
+                .expect("included path should be valid UTF-8 string"),
+        )
     }
 }
 
 fn parse_config_directive_glob(
     pair: pest::iterators::Pair<Rule>,
+    current_path: &Path,
 ) -> Result<Vec<PathBuf>, PestError> {
     let mut res = Vec::new();
-    for path_or_error in expand_config_directive_glob(pair.as_str())
+    for path_or_error in expand_config_directive_glob(pair.as_str(), current_path)
         .map_err(|e| glob_pattern_error_into_pest_error(e, &pair))?
     {
         // XXX: convert this loop into try_collect when stabilized
@@ -315,10 +335,10 @@ fn parse_config_directive_glob(
     Ok(res)
 }
 
-fn parse_file(s: &str, source_desc: &str) -> Result<Config, PestError> {
+fn parse_file(config_text: &str, config_path: &Path) -> Result<Config, PestError> {
     let mut config: Config = Default::default();
 
-    let file = ConfigParser::parse(Rule::file, s)
+    let file = ConfigParser::parse(Rule::file, config_text)
         .map_err(|err| {
             err.renamed_rules(|parser_rule| match *parser_rule {
                 Rule::EOI => "end of file".to_owned(),
@@ -351,13 +371,20 @@ fn parse_file(s: &str, source_desc: &str) -> Result<Config, PestError> {
             Rule::config_directive_root => {
                 config.roots.append(&mut parse_config_directive_glob(
                     item.into_inner().next().unwrap(),
+                    config_path,
+                )?);
+            }
+            Rule::config_directive_include => {
+                config.includes.append(&mut parse_config_directive_glob(
+                    item.into_inner().next().unwrap(),
+                    config_path,
                 )?);
             }
             Rule::rule => {
                 config.ruleset.rules.push(parse_rule(
                     item,
                     config.ruleset.rules.len(),
-                    source_desc,
+                    config_path,
                 )?);
             }
             Rule::EOI => (),
@@ -371,16 +398,35 @@ fn parse_file(s: &str, source_desc: &str) -> Result<Config, PestError> {
 impl Config {
     #[cfg(test)]
     pub fn from_str(s: &str) -> Result<Config, Error> {
-        Ok(parse_file(s, "???")?)
+        Ok(parse_file(s, Path::new("???"))?)
     }
 
     pub fn from_file(path: &Path) -> Result<Config, Error> {
-        let path = path.display().to_string();
-        let content = fs::read_to_string(&path)
-            .with_context(|| format!("failed to read config file {}", path))?;
+        let content = fs::read_to_string(&path).with_context(|| {
+            format!("failed to read config file {}", path.display().to_string())
+        })?;
 
         parse_file(&content, &path)
-            .map_err(|e| e.with_path(&path))
-            .with_context(|| format!("failed to parse config file {}", path))
+            .map_err(|e| e.with_path(&path.display().to_string()))
+            .with_context(|| format!("failed to parse config file {}", path.display().to_string()))
+    }
+
+    pub fn from_file_expand_includes(path: &Path) -> Result<Config, Error> {
+        let mut config = Config::new();
+        let mut queue = VecDeque::new();
+        let mut seen_paths = HashSet::new();
+
+        queue.push_back(path.to_path_buf());
+
+        while let Some(current_path) = queue.pop_front() {
+            config.merge_from(Self::from_file(&current_path)?);
+            config.includes.drain(0..).for_each(|include| {
+                if seen_paths.insert(include.clone()) {
+                    queue.push_back(include);
+                }
+            });
+        }
+
+        Ok(config)
     }
 }

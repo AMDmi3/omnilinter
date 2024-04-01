@@ -76,7 +76,8 @@ rule = {
 }
 
 config_directive_root = { "root" ~ simple_glob ~ NEWLINE+ }
-config_directive = _{ config_directive_root }
+config_directive_include = { "include" ~ simple_glob ~ NEWLINE+ }
+config_directive = _{ config_directive_root | config_directive_include }
 
 file = {
     SOI ~ NEWLINE* ~

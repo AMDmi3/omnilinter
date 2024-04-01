@@ -11,6 +11,7 @@ use std::path::PathBuf;
 pub struct Config {
     pub ruleset: Ruleset,
     pub roots: Vec<PathBuf>,
+    pub includes: Vec<PathBuf>,
 }
 
 impl Config {
@@ -21,5 +22,6 @@ impl Config {
     pub fn merge_from(&mut self, mut other: Config) {
         self.ruleset.rules.append(&mut other.ruleset.rules);
         self.roots.append(&mut other.roots);
+        self.includes.append(&mut other.includes);
     }
 }
