@@ -1,3 +1,10 @@
+## 0.6.0
+
+- Expand tilde in `root` paths.
+- Implement `include` directive in configs, so configs now can include
+  each other.
+- Add vim syntax file and zsh completions.
+
 ## 0.5.0
 
 - Add windows and macos support.
