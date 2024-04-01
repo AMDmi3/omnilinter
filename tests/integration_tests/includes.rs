@@ -26,9 +26,26 @@ fn includes() {
 fn include_loop() {
     TestCase::new_for_json_tests()
         .add_file("a.py", "")
-        .add_raw_file("omnilinter.conf", lines!["include second.conf"])
-        .add_raw_file("second.conf", lines!["include omnilinter.conf"])
+        .add_file("b.py", "")
+        .add_raw_file(
+            "omnilinter.conf",
+            lines!["include second.conf", "[first]", "files a.py"],
+        )
+        .add_raw_file(
+            "second.conf",
+            lines!["include omnilinter.conf", "[second]", "files b.py"],
+        )
         .run()
-        .assert_failure(); //.assert_stderr_contains("failed to parse config file omnilinter.conf")
-                           //.assert_stderr_contains("--> omnilinter.conf");
+        .assert_matches(vec!["a.py", "b.py"]);
+}
+
+#[test]
+fn no_matches() {
+    TestCase::new_for_json_tests()
+        .add_file("a.py", "")
+        .add_raw_file("omnilinter.conf", lines!["include noexsistent.conf"])
+        .silence_stderr()
+        .run()
+        .assert_failure()
+        .assert_stderr_contains("pattern does not match any files");
 }
