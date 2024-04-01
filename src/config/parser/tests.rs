@@ -282,6 +282,8 @@ fn empty_lines() {
         "",
         "root .",
         "",
+        "include .",
+        "",
         "[]",
         "",
         "tags foo",
