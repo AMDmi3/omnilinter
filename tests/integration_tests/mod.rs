@@ -8,6 +8,7 @@ mod error_exitcode;
 mod glob_patterns;
 mod glob_scope;
 mod ignore_marker;
+mod includes;
 mod lines_condition;
 mod multiple_rules;
 mod parsing_errors;
