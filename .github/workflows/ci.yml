@@ -25,6 +25,9 @@ jobs:
         run: cargo build ${{ matrix.cargo_args }}
         env:
           RUSTFLAGS: -Dwarnings
+      - name: Install share files
+        run: cd share && sudo make install
+        if: ${{ !startsWith(matrix.os, 'windows') }}
       - name: Test
         run: cargo test ${{ matrix.cargo_args }}
       - name: Format check
