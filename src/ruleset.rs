@@ -8,13 +8,14 @@ use crate::ruleset::enumerator::Enumerator;
 use std::collections::HashSet;
 use std::path::Path;
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Clone)]
 #[cfg_attr(not(feature = "coverage"), derive(Debug))]
 enum GlobScope {
     Filenames,
     Paths,
 }
 
+#[derive(Clone)]
 pub struct Glob {
     pattern: glob::Pattern,
     scope: GlobScope,
@@ -72,6 +73,7 @@ impl Glob {
     }
 }
 
+#[derive(Clone)]
 #[cfg_attr(not(feature = "coverage"), derive(Debug))]
 pub struct Regex {
     regex: regex::Regex,
@@ -105,7 +107,7 @@ impl Regex {
     }
 }
 
-#[derive(Default, PartialEq, Eq)]
+#[derive(Default, PartialEq, Eq, Clone)]
 #[cfg_attr(not(feature = "coverage"), derive(Debug))]
 pub enum ConditionLogic {
     #[default]
@@ -113,7 +115,7 @@ pub enum ConditionLogic {
     Negative,
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 #[cfg_attr(not(feature = "coverage"), derive(Debug))]
 pub struct GlobCondition {
     pub number: usize,
@@ -138,14 +140,14 @@ impl GlobCondition {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 #[cfg_attr(not(feature = "coverage"), derive(Debug))]
 pub struct RegexCondition {
     pub patterns: Vec<Regex>,
     pub excludes: Vec<Regex>,
 }
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub enum SizeOperator {
     Greater,
     GreaterEqual,
@@ -155,6 +157,7 @@ pub enum SizeOperator {
     NotEqual,
 }
 
+#[derive(Clone)]
 #[cfg_attr(not(feature = "coverage"), derive(Debug))]
 pub struct SizeCondition {
     pub operator: SizeOperator,
@@ -185,6 +188,7 @@ impl SizeCondition {
     }
 }
 
+#[derive(Clone)]
 #[cfg_attr(not(feature = "coverage"), derive(Debug))]
 pub enum ContentCondition {
     Match(RegexCondition),
@@ -193,6 +197,7 @@ pub enum ContentCondition {
     Lines(SizeCondition),
 }
 
+#[derive(Clone)]
 #[cfg_attr(not(feature = "coverage"), derive(Debug))]
 pub struct ContentConditionNode {
     pub number: usize,
@@ -220,7 +225,20 @@ pub struct Rule {
     pub is_reporting_target: bool,
 }
 
+fn prepend_to_vec<T: Clone>(target: &mut Vec<T>, source: Vec<T>) {
+    let mut tmp = source.clone();
+    std::mem::swap(target, &mut tmp);
+    target.extend(tmp);
+}
+
 impl Rule {
+    pub fn apply_template(&mut self, template: &Rule) {
+        template.tags.iter().for_each(|tag| {
+            self.tags.insert(tag.clone());
+        });
+        prepend_to_vec(&mut self.path_conditions, template.path_conditions.clone());
+    }
+
     pub fn are_all_positive_conditions_satisfied(&self, mask: &[bool]) -> bool {
         !self
             .path_conditions

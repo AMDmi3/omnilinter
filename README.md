@@ -165,6 +165,13 @@ The match may include context:
 Therefore rule order matters, so preconditions should be specified first, and
 conditions which point to concrete problematic places last.
 
+### Rule templates
+
+Rule with special `[!template]` title is not processed as a regular rule, but
+instead specifies items (tags and conditions) to be prepended to all
+following rules. This is useful to reduce duplication. You may specify
+bodyless `[!template]` rule without any items to reset the template.
+
 ## Installation
 
 <a href="https://repology.org/project/omnilinter/versions">

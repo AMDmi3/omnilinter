@@ -326,3 +326,42 @@ fn conditionless_rules() {
     let config = Config::from_str(text).unwrap();
     assert_eq!(config.ruleset.rules.len(), 2);
 }
+
+mod template {
+    use super::*;
+
+    #[test]
+    fn tags_inheritance() {
+        let text = lines![
+            "[!template]",
+            "tags a",
+            "[]",
+            "tags b",
+            "[!template]",
+            "[]",
+            "tags b"
+        ];
+        let config = Config::from_str(text).unwrap();
+        assert_eq!(config.ruleset.rules.len(), 2);
+        assert_eq!(config.ruleset.rules[0].tags.len(), 2);
+        assert_eq!(config.ruleset.rules[1].tags.len(), 1);
+    }
+
+    #[test]
+    fn conditions_inheritance() {
+        let text = lines![
+            "[!template]",
+            "files *",
+            "[]",
+            "[]",
+            "files *",
+            "[!template]",
+            "[]"
+        ];
+        let config = Config::from_str(text).unwrap();
+        assert_eq!(config.ruleset.rules.len(), 3);
+        assert_eq!(config.ruleset.rules[0].path_conditions.len(), 1);
+        assert_eq!(config.ruleset.rules[1].path_conditions.len(), 2);
+        assert_eq!(config.ruleset.rules[2].path_conditions.len(), 0);
+    }
+}

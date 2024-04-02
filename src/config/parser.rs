@@ -20,6 +20,8 @@ use std::collections::{HashSet, VecDeque};
 use std::fs;
 use std::path::{Path, PathBuf};
 
+const TEMPLATE_RULE_TITLE: &str = "!template";
+
 #[derive(pest_derive::Parser)]
 #[grammar = "config/parser/omnilinter.pest"]
 pub struct ConfigParser;
@@ -252,7 +254,8 @@ fn parse_rule(
     pair: pest::iterators::Pair<Rule>,
     rule_number: usize,
     config_path: &Path,
-) -> Result<RulesetRule, PestError> {
+    template_rule: &mut RulesetRule,
+) -> Result<Option<RulesetRule>, PestError> {
     let mut rule: RulesetRule = Default::default();
 
     for item in pair.into_inner() {
@@ -285,7 +288,13 @@ fn parse_rule(
         }
     }
 
-    Ok(rule)
+    if rule.title == TEMPLATE_RULE_TITLE {
+        *template_rule = rule;
+        Ok(None)
+    } else {
+        rule.apply_template(template_rule);
+        Ok(Some(rule))
+    }
 }
 
 type Paths = std::iter::Peekable<glob::Paths>;
@@ -383,6 +392,8 @@ fn parse_file(config_text: &str, config_path: &Path) -> Result<Config, PestError
         .next()
         .unwrap();
 
+    let mut template_rule: RulesetRule = Default::default();
+
     for item in file.into_inner() {
         match item.as_rule() {
             Rule::config_directive_root => {
@@ -398,11 +409,14 @@ fn parse_file(config_text: &str, config_path: &Path) -> Result<Config, PestError
                 )?);
             }
             Rule::rule => {
-                config.ruleset.rules.push(parse_rule(
+                if let Some(rule) = parse_rule(
                     item,
                     config.ruleset.rules.len(),
                     config_path,
-                )?);
+                    &mut template_rule,
+                )? {
+                    config.ruleset.rules.push(rule);
+                }
             }
             Rule::EOI => (),
             _ => unreachable!("unexpected parser rule type in from_str {:#?}", item),
