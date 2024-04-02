@@ -87,7 +87,7 @@ struct Args {
     num_threads: Option<usize>,
 
     /// Parse and dump specified config, do nothing else
-    #[arg(long = "dump-config", value_name = "CONFIG_PATH")]
+    #[arg(long = "dump-config", value_name = "CONFIG_PATH", hide = true)]
     config_to_dump: Option<PathBuf>,
 
     /// Directories to operate on
