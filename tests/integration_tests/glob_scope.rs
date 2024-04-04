@@ -62,3 +62,16 @@ fn path_pattern_with_leading_slash_matched_in_subdir(mut test_case: TestCase) {
         .run()
         .assert_matches(vec![paths!("dir1/b.py")]);
 }
+
+#[rstest]
+fn path_pattern_different_scope_bug(mut test_case: TestCase) {
+    // internally, there are two different glob patterns here, "b.py" with
+    // path match and "b.py" with filename match; due to a bug in how unique
+    // ids for these are generated, these may be aliased as a same patter,
+    // negative match for /b.py cached, and b.py match not accounted
+    test_case
+        .add_rule("files /b.py")
+        .add_rule("files b.py")
+        .run()
+        .assert_matches(vec![paths!("dir1/b.py")]);
+}

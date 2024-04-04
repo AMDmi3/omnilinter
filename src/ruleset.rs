@@ -28,6 +28,7 @@ impl std::fmt::Debug for Glob {
         f.debug_struct("Glob")
             .field("pattern", &self.pattern.as_str())
             .field("scope", &self.scope)
+            .field("unique_id", &self.unique_id)
             .finish()
     }
 }
@@ -63,7 +64,13 @@ impl Glob {
     }
 
     pub fn enumerate_with(&mut self, enumerator: &mut Enumerator) {
-        self.unique_id = enumerator.get_id(self.pattern.as_str());
+        self.unique_id = enumerator.get_id(
+            &(self.pattern.as_str().to_owned()
+                + match self.scope {
+                    GlobScope::Filenames => "f",
+                    GlobScope::Paths => "p",
+                }),
+        );
     }
 
     #[cfg_attr(not(feature = "matching-cache"), allow(dead_code))]
