@@ -23,13 +23,10 @@ fn apply_file_metadata_conditions(
 
     rules_with_conditions.retain(|(_, path_condition)| {
         for content_condition_node in &path_condition.content_conditions {
-            match &content_condition_node.condition {
-                ContentCondition::Size(size_condition) => {
-                    if !size_condition.check(size) {
-                        return false;
-                    }
+            if let ContentCondition::Size(size_condition) = &content_condition_node.condition {
+                if !size_condition.check(size) {
+                    return false;
                 }
-                _ => {}
             }
         }
         true
@@ -45,14 +42,11 @@ fn apply_file_line_conditions(
 ) {
     rules_with_conditions.retain(|(_, path_condition)| {
         for content_condition_node in &path_condition.content_conditions {
-            match &content_condition_node.condition {
-                ContentCondition::Lines(size_condition) => {
-                    if !size_condition.check(num_lines) {
-                        rules_with_conditions_to_finalize.remove(&path_condition.number);
-                        return false;
-                    }
+            if let ContentCondition::Lines(size_condition) = &content_condition_node.condition {
+                if !size_condition.check(num_lines) {
+                    rules_with_conditions_to_finalize.remove(&path_condition.number);
+                    return false;
                 }
-                _ => {}
             }
         }
         true

@@ -73,7 +73,7 @@ impl ContentConditionNode {
         ContentConditionNode {
             number: Default::default(),
             is_reporting_target: Default::default(),
-            condition: condition,
+            condition,
         }
     }
 }

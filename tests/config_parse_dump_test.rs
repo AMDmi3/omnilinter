@@ -30,7 +30,7 @@ fn with_test_config() {
     let input_path = Path::new("tests/config_parse_dump_test.conf");
 
     let first_dump = read_to_string(input_path).unwrap().replace('\r', ""); // line endings could be changed by git
-    let second_dump = parse_dump_config(&input_path);
+    let second_dump = parse_dump_config(input_path);
 
     pretty_assertions::assert_eq!(first_dump, second_dump);
 }

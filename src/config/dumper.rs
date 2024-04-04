@@ -54,19 +54,19 @@ fn dump_content_condition(content_condition_node: &ContentConditionNode) {
     match &content_condition_node.condition {
         ContentCondition::Match(regex_condition) => {
             print!("        match");
-            dump_regex_condition_args(&regex_condition);
+            dump_regex_condition_args(regex_condition);
         }
         ContentCondition::NoMatch(regex_condition) => {
             print!("        nomatch");
-            dump_regex_condition_args(&regex_condition);
+            dump_regex_condition_args(regex_condition);
         }
         ContentCondition::Size(size_condition) => {
             print!("        size");
-            dump_size_condition_args(&size_condition);
+            dump_size_condition_args(size_condition);
         }
         ContentCondition::Lines(size_condition) => {
             print!("        lines");
-            dump_size_condition_args(&size_condition);
+            dump_size_condition_args(size_condition);
         }
     }
     println!();

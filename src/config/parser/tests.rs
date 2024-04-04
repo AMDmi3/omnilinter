@@ -23,7 +23,7 @@ fn get_first_regex_exclude(config: &Config) -> &Regex {
 
 fn get_first_size_condition(config: &Config) -> &SizeCondition {
     match &config.ruleset.rules[0].path_conditions[0].content_conditions[0].condition {
-        ContentCondition::Size(size_condition) => &size_condition,
+        ContentCondition::Size(size_condition) => size_condition,
         _ => panic!(),
     }
 }

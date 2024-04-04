@@ -178,7 +178,7 @@ fn parse_regexes_condition(pair: pest::iterators::Pair<Rule>) -> Result<RegexCon
 }
 
 fn parse_size_condition(pair: pest::iterators::Pair<Rule>) -> Result<SizeCondition, PestError> {
-    let mut iter = pair.into_inner().into_iter();
+    let mut iter = pair.into_inner();
     let operator = iter.next().unwrap();
     let value = iter.next().unwrap();
 
@@ -266,7 +266,7 @@ fn parse_rule(
                 if title.is_empty() {
                     rule.title = format!(
                         "rule from {}:{} (#{})",
-                        config_path.display().to_string(),
+                        config_path.display(),
                         line_number,
                         rule_number + 1
                     );
@@ -433,13 +433,12 @@ impl Config {
     }
 
     pub fn from_file(path: &Path) -> Result<Config, Error> {
-        let content = fs::read_to_string(&path).with_context(|| {
-            format!("failed to read config file {}", path.display().to_string())
-        })?;
+        let content = fs::read_to_string(path)
+            .with_context(|| format!("failed to read config file {}", path.display()))?;
 
-        parse_file(&content, &path)
+        parse_file(&content, path)
             .map_err(|e| e.with_path(&path.display().to_string()))
-            .with_context(|| format!("failed to parse config file {}", path.display().to_string()))
+            .with_context(|| format!("failed to parse config file {}", path.display()))
     }
 
     pub fn from_file_expand_includes(path: &Path) -> Result<Config, Error> {
