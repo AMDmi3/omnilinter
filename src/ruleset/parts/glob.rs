@@ -75,3 +75,40 @@ impl Glob {
         self.unique_id
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    use std::collections::HashSet;
+
+    #[test]
+    #[cfg_attr(debug_assertions, should_panic)]
+    fn not_enumerated() {
+        let g = Glob::new("README.md").unwrap();
+        g.get_unique_id();
+    }
+
+    fn calc_unique_globs(patterns: &[&str]) -> usize {
+        let mut e = Enumerator::new();
+        patterns
+            .iter()
+            .map(|pattern| {
+                let mut g = Glob::new(pattern).unwrap();
+                g.enumerate_with(&mut e);
+                g.get_unique_id()
+            })
+            .collect::<HashSet<_>>()
+            .len()
+    }
+
+    #[test]
+    fn enumeration_same() {
+        assert_eq!(calc_unique_globs(&["README.md", "README.md"]), 1);
+    }
+
+    #[test]
+    fn enumeration_different() {
+        assert_eq!(calc_unique_globs(&["README.md", "/README.md"]), 2);
+    }
+}
