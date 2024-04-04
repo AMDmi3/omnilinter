@@ -1,3 +1,14 @@
+## 0.7.0
+
+- Implement rule templates: tags and conditions from a rule named
+  `[!template]` will be prepended to each following rule. Use bodyless
+  `[!template]` if you need to reset the template.
+- Fix incorrect glob matching bug when there were file patterns with
+  the only difference in a leading slash (such as `/README.md` and
+  `README.md`) in the ruleset.
+- `--dump-config` option is now considered internal and is hidden from
+  the help.
+
 ## 0.6.0
 
 - Expand tilde in `root` paths.
