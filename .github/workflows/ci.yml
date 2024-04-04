@@ -21,6 +21,17 @@ jobs:
         with:
           toolchain: ${{ matrix.rust }}
           components: rustfmt
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            target/
+          key: cargo-${{ matrix.os }}-${{ matrix.rust }}-${{ matrix.cargo_args }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            cargo-${{ matrix.os }}-${{ matrix.rust }}-${{ matrix.cargo_args }}-
+            cargo-${{ matrix.os }}-${{ matrix.rust }}-
+            cargo-${{ matrix.os }}-
       - name: Build
         run: cargo build ${{ matrix.cargo_args }}
         env:
@@ -48,6 +59,15 @@ jobs:
         with:
           toolchain: nightly
           components: llvm-tools-preview
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            target/
+          key: cargo-coverage-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            cargo-coverage-
       - name: Test
         run: cargo test --features coverage
         env:
