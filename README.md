@@ -44,7 +44,9 @@ my_project/my_cpp_lib
   src/main.cpp:17: convert deprecated auto_ptr to unique_ptr
 ```
 
-See omnilinter's own [config](.omnilinter.conf) for more examples.
+See omnilinter's own [config](.omnilinter.conf) and [author's
+ruleset](https://github.com/AMDmi3/omnilinter-rules-amdmi3/) for more
+examples.
 
 ## Running
 
