@@ -35,7 +35,7 @@ pest = "2.7.9"
 pest_derive = { version = "2.7.9", features = ["grammar-extras"] }
 rayon = { version = "1.10.0", optional = true }
 regex = { version = "1.10.4", default-features = false, features = ["std", "unicode-perl"] }
-serde = { version = "1.0.198", features = ["derive"] }
+serde = { version = "1.0.199", features = ["derive"] }
 serde_json = "1.0.116"
 walkdir = "2.5.0"
 
