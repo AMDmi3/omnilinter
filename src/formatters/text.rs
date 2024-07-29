@@ -4,6 +4,7 @@
 use crate::r#match::{Match, MatchResult};
 use colored::*;
 
+#[allow(clippy::enum_variant_names)]
 #[derive(Clone, Copy, PartialEq)]
 pub enum Format {
     ByRule,
