@@ -5,7 +5,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - { name: "Rust 1.74",   rust: "1.74",  os: ubuntu-latest, cargo_args: "" }
+          - { name: "Rust 1.80",   rust: "1.80",  os: ubuntu-latest, cargo_args: "" }
           - { name: "Rust stable", rust: stable,  os: ubuntu-latest, cargo_args: "" }
           - { name: "Rust nightly", rust: nightly, os: ubuntu-latest, cargo_args: "" }
           - { name: "Rust nightly, windows", rust: nightly, os: windows-latest, cargo_args: "" }
