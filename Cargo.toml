@@ -32,7 +32,7 @@ directories = "5.0.1"
 fxhash = "0.2.1"
 glob = "0.3.1"
 pest = "2.7.14"
-pest_derive = { version = "2.7.13", features = ["grammar-extras"] }
+pest_derive = { version = "2.7.14", features = ["grammar-extras"] }
 rayon = { version = "1.10.0", optional = true }
 regex = { version = "1.11.0", default-features = false, features = ["std", "unicode-perl"] }
 serde = { version = "1.0.210", features = ["derive"] }
