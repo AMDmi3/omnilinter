@@ -27,7 +27,7 @@ coverage = []
 [dependencies]
 anyhow = "1.0.94"
 clap = { version = "4.5.23", features = ["derive"] }
-colored = "2.1.0"
+colored = "2.2.0"
 directories = "5.0.1"
 fxhash = "0.2.1"
 glob = "0.3.1"
