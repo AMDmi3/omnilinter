@@ -30,7 +30,7 @@ clap = { version = "4.5.23", features = ["derive"] }
 colored = "2.2.0"
 directories = "5.0.1"
 fxhash = "0.2.1"
-glob = "0.3.1"
+glob = "0.3.2"
 pest = "2.7.15"
 pest_derive = { version = "2.7.15", features = ["grammar-extras"] }
 rayon = { version = "1.10.0", optional = true }
