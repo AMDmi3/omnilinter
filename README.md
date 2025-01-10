@@ -1,7 +1,6 @@
 # omnilinter
 
 [![CI](https://github.com/AMDmi3/omnilinter/actions/workflows/ci.yml/badge.svg)](https://github.com/AMDmi3/omnilinter/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/AMDmi3/omnilinter/graph/badge.svg?token=LZC12KUQ0M)](https://codecov.io/gh/AMDmi3/omnilinter)
 [![GitHub commits (since latest release)](https://img.shields.io/github/commits-since/AMDmi3/omnilinter/latest.svg)](https://github.com/AMDmi3/omnilinter)
 
 Define path pattern and regular expression rules and match against all
