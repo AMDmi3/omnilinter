@@ -28,7 +28,7 @@ coverage = []
 anyhow = "1.0.95"
 clap = { version = "4.5.27", features = ["derive"] }
 colored = "3.0.0"
-directories = "5.0.1"
+directories = "6.0.0"
 fxhash = "0.2.1"
 glob = "0.3.2"
 pest = "2.7.15"
