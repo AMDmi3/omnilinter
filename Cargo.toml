@@ -43,6 +43,6 @@ walkdir = "2.5.0"
 assert_cmd = "2.0.16"
 criterion = { version = "0.5.1", default-features = false, features = ["cargo_bench_support"] }
 pretty_assertions = "1.4.1"
-rstest = { version = "0.24.0", default-features = false }
+rstest = { version = "0.25.0", default-features = false }
 tempfile = "3.17.1"
 testutils = { path = "testutils" }
