@@ -44,5 +44,5 @@ assert_cmd = "2.0.17"
 criterion = { version = "0.5.1", default-features = false, features = ["cargo_bench_support"] }
 pretty_assertions = "1.4.1"
 rstest = { version = "0.25.0", default-features = false }
-tempfile = "3.19.1"
+tempfile = "3.20.0"
 testutils = { path = "testutils" }
