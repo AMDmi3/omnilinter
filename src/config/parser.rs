@@ -386,7 +386,7 @@ fn parse_file(config_text: &str, config_path: &Path) -> Result<Config, PestError
                 Rule::simple_glob => "glob pattern".to_owned(),
                 // XXX: how to make pest always descend into main rule?
                 Rule::file => "omnilinter configuration file".to_owned(),
-                other => format!("{:?}", other),
+                other => format!("{other:?}"),
             })
         })?
         .next()

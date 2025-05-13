@@ -17,7 +17,7 @@ fn dump_regex(regex: &Regex) {
     let regex = regex.as_str();
     for framing_character in REGEX_FRAMING_CHARACTERS.chars() {
         if !regex.contains(framing_character) {
-            print!("{}{}{}", framing_character, regex, framing_character);
+            print!("{framing_character}{regex}{framing_character}");
             return;
         }
     }
@@ -77,7 +77,7 @@ fn dump_path_condition(path_condition: &GlobCondition) {
         ConditionLogic::Positive => "files",
         ConditionLogic::Negative => "nofiles",
     };
-    print!("    {}", directive);
+    print!("    {directive}");
     path_condition.patterns.iter().for_each(|glob| {
         print!(" ");
         dump_glob(glob);
