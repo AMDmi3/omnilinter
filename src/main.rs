@@ -13,7 +13,7 @@ use crate::format_text::Palette;
 use crate::formatters::json as format_json;
 use crate::formatters::text as format_text;
 use crate::r#match::MatchResult;
-use anyhow::{bail, Error};
+use anyhow::{Error, bail};
 use clap::{Parser, ValueEnum};
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -122,7 +122,9 @@ fn read_config(args: &Args) -> Result<Config, Error> {
     } else if let Some(path) = get_default_config_path() {
         Ok(Config::from_file_expand_includes(&path)?)
     } else {
-        bail!("config file is neither specified on the command line, nor present in the application config directory");
+        bail!(
+            "config file is neither specified on the command line, nor present in the application config directory"
+        );
     }
 }
 
