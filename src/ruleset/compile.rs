@@ -13,21 +13,19 @@ pub struct CompiledRuleset {
 }
 
 fn set_reporting_target(rule: &mut Rule) {
-    if let Some(last_path_condition) = rule.path_conditions.last_mut() {
-        if last_path_condition.logic == ConditionLogic::Positive {
-            if let Some(last_content_condition_node) =
-                last_path_condition.content_conditions.last_mut()
-            {
-                if let ContentCondition::Match(_) = last_content_condition_node.condition {
-                    last_content_condition_node.is_reporting_target = true;
-                    last_path_condition.has_reporting_target = true;
-                    return;
-                }
-            }
-
-            last_path_condition.is_reporting_target = true;
+    if let Some(last_path_condition) = rule.path_conditions.last_mut()
+        && last_path_condition.logic == ConditionLogic::Positive
+    {
+        if let Some(last_content_condition_node) = last_path_condition.content_conditions.last_mut()
+            && let ContentCondition::Match(_) = last_content_condition_node.condition
+        {
+            last_content_condition_node.is_reporting_target = true;
+            last_path_condition.has_reporting_target = true;
             return;
         }
+
+        last_path_condition.is_reporting_target = true;
+        return;
     }
     rule.is_reporting_target = true;
 }

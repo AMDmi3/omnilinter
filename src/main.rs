@@ -225,10 +225,10 @@ fn main() -> Result<ExitCode, Error> {
         OutputFormat::Json => format_json::format_matches(&result),
     }
 
-    if let Some(error_exitcode) = args.error_exitcode {
-        if !result.is_empty() {
-            return Ok(error_exitcode.into());
-        }
+    if let Some(error_exitcode) = args.error_exitcode
+        && !result.is_empty()
+    {
+        return Ok(error_exitcode.into());
     }
     Ok(ExitCode::SUCCESS)
 }
