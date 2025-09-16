@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use rstest::{fixture, rstest};
-use testutils::{paths, TestCase};
+use testutils::{TestCase, paths};
 
 #[fixture]
 fn test_case() -> TestCase {
