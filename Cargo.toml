@@ -2,7 +2,7 @@
 name = "omnilinter"
 description = "General purpose bulk linter"
 version = "0.7.0"
-edition = "2021"
+edition = "2024"
 authors = ["Dmitry Marakasov <amdmi3@amdmi3.ru>"]
 license = "GPL-3.0-or-later"
 readme = "README.md"
