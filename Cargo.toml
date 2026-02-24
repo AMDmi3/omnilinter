@@ -25,7 +25,7 @@ multithreading = ["dep:rayon"]
 coverage = []
 
 [dependencies]
-anyhow = "1.0.100"
+anyhow = "1.0.102"
 clap = { version = "4.5.60", features = ["derive"] }
 colored = "3.1.1"
 directories = "6.0.0"
