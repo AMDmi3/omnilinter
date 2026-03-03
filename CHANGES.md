@@ -1,3 +1,7 @@
+## 0.7.1
+
+- Dependency updates and clippy fixes
+
 ## 0.7.0
 
 - Implement rule templates: tags and conditions from a rule named
