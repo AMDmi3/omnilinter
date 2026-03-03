@@ -1,6 +1,6 @@
 ## 0.7.1
 
-- Dependency updates and clippy fixes
+- Dependency updates and code style fixes
 
 ## 0.7.0
 
