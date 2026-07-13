@@ -25,17 +25,10 @@ jobs:
         with:
           toolchain: ${{ matrix.rust }}
           components: rustfmt
-      - uses: actions/cache@v5
+      - uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            target/
-          key: cargo-${{ matrix.os }}-${{ matrix.rust }}-${{ matrix.cargo_args }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            cargo-${{ matrix.os }}-${{ matrix.rust }}-${{ matrix.cargo_args }}-
-            cargo-${{ matrix.os }}-${{ matrix.rust }}-
-            cargo-${{ matrix.os }}-
+          save-if: ${{ github.ref == 'refs/heads/master' }}
+          cache-bin: "false"
       - name: Build
         run: cargo build ${{ matrix.cargo_args }}
         env:
